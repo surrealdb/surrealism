@@ -9,4 +9,3 @@ fn can_drive(age: i64) -> bool {
 fn create_user((name, age): (String, i64), enabled: bool) -> String {
     return format!("Created user {name} of age {age}. Enabled? {enabled}");
 }
-
