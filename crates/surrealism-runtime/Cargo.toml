@@ -1,0 +1,29 @@
+[package]
+name = "surrealism-runtime"
+authors.workspace = true
+edition.workspace = true
+license-file.workspace = true
+publish.workspace = true
+version.workspace = true
+rust-version.workspace = true
+description.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+anyhow = "1.0.98"
+chrono.workspace = true
+libc.workspace = true
+surrealdb.workspace = true
+surrealism-types = { version = "3.0.0", path = "../surrealism-types" }
+thiserror = "2.0.12"
+uuid.workspace = true
+wasmtime = "33.0.0"
+
+[lints]
+workspace = true

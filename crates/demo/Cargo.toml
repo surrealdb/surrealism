@@ -1,0 +1,22 @@
+[package]
+name = "demo"
+authors.workspace = true
+edition.workspace = true
+license-file.workspace = true
+publish.workspace = true
+version.workspace = true
+rust-version.workspace = true
+description.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+surrealism = { version = "3.0.0", path = "../surrealism" }
+
+[lints]
+workspace = true
