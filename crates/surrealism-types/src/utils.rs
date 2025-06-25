@@ -1,6 +1,4 @@
-use std::ffi::{CStr, CString};
-
-use libc::c_char;
+use std::ffi::{CStr, CString, c_char};
 
 use super::string::string_t;
 

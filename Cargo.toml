@@ -1,5 +1,6 @@
 [workspace]
 members = [ "crates/demo","crates/surrealism", "crates/surrealism-macros", "crates/surrealism-runtime", "crates/surrealism-types"]
+resolver = "3"
 
 [workspace.package]
 authors = ["Tobie Morgan Hitchcock <tobie@surrealdb.com>"]
@@ -22,16 +23,12 @@ categories = ["database-implementations", "data-structures", "embedded"]
 
 [workspace.dependencies]
 # workspace internal dependencies
-surrealdb = { version = "2.3.4", default-features = false, features = ["kv-mem"] }
+surrealdb = { version = "2.3.5", default-features = false, features = ["kv-mem"] }
 getrandom = "0.3.2"
 uuid = "1.10.0"
 chrono = "0.4.38"
 libc = "0.2.158"
 cbindgen = "0.27.0"
-tokio = "1.43.0"
-
-[workspace.target.'cfg(target_arch = "wasm32")'.dependencies]
-tokio = { version = "1.45", default-features = false, features = ["macros", "rt"] }
 
 [workspace.lints.clippy]
 

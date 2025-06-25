@@ -1,7 +1,7 @@
 use anyhow::Result;
 use surrealism_types::controller::MemoryController;
 
-use crate::memory::{alloc, free};
+use crate::memory::{__sr_alloc, __sr_free};
 
 pub struct Controller {
 
@@ -9,11 +9,11 @@ pub struct Controller {
 
 impl MemoryController for Controller {
     fn alloc(&mut self, len: u32) -> Result<u32> {
-        Ok(alloc(len))
+        Ok(__sr_alloc(len))
     }
 
     fn free(&mut self, ptr: u32, len: u32) -> Result<()> {
-        Ok(free(ptr, len))
+        Ok(__sr_free(ptr, len))
     }
 
     fn mut_mem<'a>(&'a mut self, ptr: u32, len: u32) -> &'a mut [u8] {

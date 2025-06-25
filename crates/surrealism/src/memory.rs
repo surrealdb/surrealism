@@ -1,5 +1,5 @@
 #[unsafe(no_mangle)]
-pub extern "C" fn alloc(len: u32) -> u32 {
+pub extern "C" fn __sr_alloc(len: u32) -> u32 {
     let layout = std::alloc::Layout::from_size_align(len as usize, 8).expect("invalid layout");
     let ptr = unsafe { std::alloc::alloc(layout) };
 
@@ -11,7 +11,7 @@ pub extern "C" fn alloc(len: u32) -> u32 {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn free(ptr: u32, len: u32) {
+pub extern "C" fn __sr_free(ptr: u32, len: u32) {
     let layout = std::alloc::Layout::from_size_align(len as usize, 8).expect("invalid layout");
     let ptr = ptr as usize as *mut u8;
     unsafe {

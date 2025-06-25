@@ -70,38 +70,53 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
         export_name_override.unwrap_or_else(|| fn_name.to_string())
     };
 
-    let export_ident = format_ident!("__fnc__{}", export_suffix);
-    let args_ident = format_ident!("__args__{}", export_suffix);
-    let returns_ident = format_ident!("__returns__{}", export_suffix);
+    let export_ident = format_ident!("__sr_fnc__{}", export_suffix);
+    let args_ident = format_ident!("__sr_args__{}", export_suffix);
+    let returns_ident = format_ident!("__sr_returns__{}", export_suffix);
 
     let expanded = quote! {
         #fn_vis #fn_sig #fn_block
 
         #[unsafe(no_mangle)]
-        pub extern "C" fn #export_ident(ptr: u32, len: u32) -> (u32, u32) {
+        pub extern "C" fn #export_ident(ptr: u32, len: u32) -> u32 {
+            use surrealism::types::convert::Transfer;
             let mut controller = surrealism::Controller {};
             let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
                 |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
             );
-            f.invoke_raw(&mut controller, (ptr, len).into()).unwrap().into()
+            f.invoke_raw(&mut controller, (ptr, len).into())
+                .unwrap()
+                .transfer(&mut controller)
+                .unwrap()
+                .ptr
         }
 
         #[unsafe(no_mangle)]
-        pub extern "C" fn #args_ident() -> (u32, u32) {
+        pub extern "C" fn #args_ident() -> u32 {
+            use surrealism::types::convert::Transfer;
             let mut controller = surrealism::Controller {};
             let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
                 |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
             );
-            f.args_raw(&mut controller).unwrap().into()
+            f.args_raw(&mut controller)
+                .unwrap()
+                .transfer(&mut controller)
+                .unwrap()
+                .ptr
         }
 
         #[unsafe(no_mangle)]
-        pub extern "C" fn #returns_ident() -> (u32, u32) {
+        pub extern "C" fn #returns_ident() -> u32 {
+            use surrealism::types::convert::Transfer;
             let mut controller = surrealism::Controller {};
             let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
                 |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
             );
-            f.returns_raw(&mut controller).unwrap().into()
+            f.returns_raw(&mut controller)
+                .unwrap()
+                .transfer(&mut controller)
+                .unwrap()
+                .ptr
         }
     };
 
