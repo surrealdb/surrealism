@@ -1,1 +1,3 @@
 /target
+/test/out.wasm
+/test/surrealism-runtime
