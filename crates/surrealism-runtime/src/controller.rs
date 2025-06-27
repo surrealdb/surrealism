@@ -1,7 +1,7 @@
 use anyhow::Result;
 use wasmtime::*;
 use surrealdb::sql;
-use surrealism_types::{args::Args, array::TransferredArray, controller::MemoryController, convert::{FromTransferrable, Transfer}, kind::Kind, value::Value};
+use surrealism_types::{args::Args, array::TransferredArray, controller::MemoryController, convert::{Transferrable, Transfer}, kind::Kind, value::Value};
 use wasmtime_wasi::preview1::{self, WasiP1Ctx};
 use wasmtime_wasi::p2::WasiCtxBuilder;
 

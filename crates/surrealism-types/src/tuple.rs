@@ -3,7 +3,7 @@ use surrealdb::sql;
 use surrealdb::sql::Kind;
 use crate::value::Value;
 use crate::array::Array;
-use crate::convert::{IntoTransferrable, FromTransferrable};
+use crate::convert::Transferrable;
 use crate::controller::MemoryController;
 use anyhow::Result;
 use crate::err::Error;
@@ -22,9 +22,9 @@ macro_rules! impl_args {
                 }
             }
 
-            impl<$($name),+> IntoTransferrable<Value> for ($($name,)+)
+            impl<$($name),+> Transferrable for ($($name,)+)
             where
-                $($name: IntoTransferrable<Value>),+
+                $($name: Transferrable + KindOf),+
             {
                 fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
                     #[allow(non_snake_case)]
@@ -34,13 +34,7 @@ macro_rules! impl_args {
                     ];
                     Ok(Value::SR_VALUE_ARRAY(Array(vals.into_transferrable(controller)?)))
                 }
-            }
-
-            impl<$($name),+> FromTransferrable<Value> for ($($name,)+)
-            where
-                Self: KindOf,
-                $($name: FromTransferrable<Value>),+
-            {
+                
                 fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
                     if let Value::SR_VALUE_ARRAY(x) = value {
                         let mut arr = Vec::<Value>::from_transferrable(x.0, controller)?;

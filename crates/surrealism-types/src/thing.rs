@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use surrealdb::sql;
 use crate::{controller::MemoryController, string::Strand};
-use super::{array::Array, convert::{FromTransferrable, IntoTransferrable}, object::Object, value::Value};
+use super::{array::Array, convert::Transferrable, object::Object, value::Value};
 use anyhow::Result;
 
 #[repr(C)]
@@ -23,7 +23,7 @@ pub enum Id {
 	// Generate(Gen),
 }
 
-impl IntoTransferrable<Thing> for sql::Thing {
+impl Transferrable<Thing> for sql::Thing {
 	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Thing> {
 		let tb = self.tb.into_transferrable(controller)?;
 		let id = match self.id {
@@ -40,9 +40,7 @@ impl IntoTransferrable<Thing> for sql::Thing {
 			id,
 		})
 	}
-}
-
-impl FromTransferrable<Thing> for sql::Thing {
+	
 	fn from_transferrable(value: Thing, controller: &mut dyn MemoryController) -> Result<Self> {
 		let tb = String::from_transferrable(value.tb, controller)?;
 		let id = match value.id {

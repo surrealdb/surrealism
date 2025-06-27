@@ -1,4 +1,4 @@
-use crate::{array::TransferredArray, controller::MemoryController, convert::{FromTransferrable, IntoTransferrable, Transfer, Transferred}, err::Error, value::Value};
+use crate::{array::TransferredArray, controller::MemoryController, convert::{Transferrable, Transfer, Transferred}, err::Error, value::Value};
 use crate::kind::KindOf;
 use surrealdb::sql;
 use anyhow::Result;
@@ -16,7 +16,7 @@ macro_rules! impl_args {
         $(
             impl<$($name),+> Args for ($($name,)+)
             where
-                $($name: IntoTransferrable<Value> + FromTransferrable<Value> + KindOf),+
+                $($name: Transferrable + KindOf),+
             {
                 fn transfer_args(self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray<Value>>> {
                     #[allow(non_snake_case)]
@@ -86,7 +86,7 @@ impl Args for () {
 
 impl<T> Args for Vec<T>
 where
-    T: IntoTransferrable<Value> + FromTransferrable<Value> + KindOf
+    T: Transferrable + KindOf
 {
     fn transfer_args(self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray<Value>>> {
         self

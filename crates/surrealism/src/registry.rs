@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use surrealdb::sql;
 use surrealism_types::array::TransferredArray;
 use surrealism_types::controller::MemoryController;
-use surrealism_types::convert::{IntoTransferrable, Transfer, Transferred};
+use surrealism_types::convert::{Transferrable, Transfer, Transferred};
 use surrealism_types::args::Args;
 use surrealism_types::kind::{Kind, KindOf};
 use surrealism_types::value::Value;
@@ -12,7 +12,7 @@ use anyhow::Result;
 pub struct SurrealismFunction<A, R, F>
 where
     A: 'static + Send + Sync + Args + Debug,
-    R: 'static + Send + Sync + IntoTransferrable<Value> + Debug,
+    R: 'static + Send + Sync + Transferrable<Value> + Debug,
     F: 'static + Send + Sync + Fn(A) -> R,
 {
     function: F,
@@ -22,7 +22,7 @@ where
 impl<A, R, F> SurrealismFunction<A, R, F>
 where
     A: 'static + Send + Sync + Args + Debug,
-    R: 'static + Send + Sync + IntoTransferrable<Value> + KindOf + Debug,
+    R: 'static + Send + Sync + Transferrable<Value> + KindOf + Debug,
     F: 'static + Send + Sync + Fn(A) -> R, 
 {   
     pub fn from(function: F) -> Self {

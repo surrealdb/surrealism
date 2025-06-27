@@ -1,7 +1,7 @@
 use surrealdb::sql;
 use crate::controller::MemoryController;
 use crate::string::Strand;
-use super::convert::{FromTransferrable, IntoTransferrable};
+use super::convert::Transferrable;
 use super::datetime::Datetime;
 pub use super::{array::Array, number::Number, object::Object};
 use super::{bytes::Bytes, thing::Thing, uuid::Uuid};
@@ -29,7 +29,7 @@ pub enum Value {
 	SR_VALUE_THING(Thing),
 }
 
-impl IntoTransferrable<Value> for sql::Value {
+impl Transferrable for sql::Value {
 	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
 		match self {
 			Self::None => Ok(Value::SR_VALUE_NONE),
@@ -48,9 +48,7 @@ impl IntoTransferrable<Value> for sql::Value {
 			_ => unimplemented!("other variants shouldn't be returned"),
 		}
 	}
-}
-
-impl FromTransferrable<Value> for sql::Value {
+	
 	fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
 		match value {
 			Value::SR_VALUE_NONE => Ok(Self::None),

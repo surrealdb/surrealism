@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::controller::MemoryController;
-use super::{convert::{FromTransferrable, IntoTransferrable}, value::Value};
+use super::{convert::Transferrable, value::Value};
 use surrealdb::sql;
 use anyhow::Result;
 
@@ -23,7 +23,7 @@ impl<T> TransferredArray<T> {
     }
 }
 
-impl<T: Clone> IntoTransferrable<TransferredArray<T>> for Vec<T>
+impl<T: Clone> Transferrable<TransferredArray<T>> for Vec<T>
 {
     fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<TransferredArray<T>> {
         let len = self.len();
@@ -44,9 +44,7 @@ impl<T: Clone> IntoTransferrable<TransferredArray<T>> for Vec<T>
 
         Ok(TransferredArray::from_ptr_len(wasm_ptr, len as u32))
     }
-}
 
-impl<T: Clone> FromTransferrable<TransferredArray<T>> for Vec<T> {
 	fn from_transferrable(value: TransferredArray<T>, controller: &mut dyn MemoryController) -> Result<Self> {
 		let ptr = value.ptr as usize;
 		let len = value.len as usize;
@@ -73,7 +71,7 @@ impl<T: Clone> FromTransferrable<TransferredArray<T>> for Vec<T> {
 #[repr(C)]
 pub struct Array(pub TransferredArray<Value>);
 
-impl IntoTransferrable<Array> for sql::Array {
+impl Transferrable<Array> for sql::Array {
 	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Array> {
 		Ok(Array(
             self
@@ -83,9 +81,7 @@ impl IntoTransferrable<Array> for sql::Array {
                 .into_transferrable(controller)?
         ))
 	}
-}
 
-impl FromTransferrable<Array> for sql::Array {
 	fn from_transferrable(value: Array, controller: &mut dyn MemoryController) -> Result<Self> {
         Ok(
             Vec::<Value>::from_transferrable(value.0, controller)?

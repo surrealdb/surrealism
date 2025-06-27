@@ -85,135 +85,27 @@ impl<T> From<u32> for Transferred<T> {
 /// INTO TRANSFERRABLE ///
 //////////////////////////
 
-pub trait IntoTransferrable<R> {
-    fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<R>;
-}
-
-impl IntoTransferrable<Value> for Value {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(self)
-	}
-}
-
-impl IntoTransferrable<Value> for bool {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_BOOL(self))
-	}
-}
-
-impl IntoTransferrable<Value> for i64 {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_NUMBER(Number::SR_NUMBER_INT(self)))
-	}
-}
-
-impl IntoTransferrable<Value> for f64 {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_NUMBER(Number::SR_NUMBER_FLOAT(self)))
-	}
-}
-
-impl IntoTransferrable<Value> for String {
-	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_STRAND(self.into_transferrable(controller)?))
-	}
-}
-
-impl IntoTransferrable<Value> for Duration {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_DURATION(self))
-	}
-}
-
-impl IntoTransferrable<Value> for sql::Duration {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_DURATION(self.into()))
-	}
-}
-
-impl IntoTransferrable<Value> for Datetime {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_DATETIME(self))
-	}
-}
-
-impl IntoTransferrable<Value> for sql::Datetime {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_DATETIME(self.into()))
-	}
-}
-
-impl IntoTransferrable<Value> for Uuid {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_UUID(self))
-	}
-}
-
-impl IntoTransferrable<Value> for sql::Uuid {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_UUID(self.into()))
-	}
-}
-
-impl IntoTransferrable<Value> for Array {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_ARRAY(self))
-	}
-}
-
-impl IntoTransferrable<Value> for sql::Array {
-	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_ARRAY(self.into_transferrable(controller)?))
-	}
-}
-
-impl IntoTransferrable<Value> for Object {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_OBJECT(self))
-	}
-}
-
-impl IntoTransferrable<Value> for sql::Object {
-	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_OBJECT(self.into_transferrable(controller)?))
-	}
-}
-
-impl IntoTransferrable<Value> for Bytes {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_BYTES(self))
-	}
-}
-
-impl IntoTransferrable<Value> for sql::Bytes {
-	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_BYTES(self.into_transferrable(controller)?))
-	}
-}
-
-impl IntoTransferrable<Value> for Thing {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_THING(self))
-	}
-}
-
-impl IntoTransferrable<Value> for sql::Thing {
-	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_THING(self.into_transferrable(controller)?))
-	}
-}
-
-
-//////////////////////////
-/// FROM TRANSFERRABLE ///
-//////////////////////////
-
-pub trait FromTransferrable<T> {
-    fn from_transferrable(value: T, controller: &mut dyn MemoryController) -> Result<Self>
+pub trait Transferrable<T = Value> {
+    fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<T>;
+	fn from_transferrable(value: T, controller: &mut dyn MemoryController) -> Result<Self>
     where Self: Sized;
 }
 
-impl FromTransferrable<Value> for bool {
+impl Transferrable for Value {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(self)
+	}
+
+	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+		Ok(value)
+	}
+}
+
+impl Transferrable for bool {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_BOOL(self))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_BOOL(x) = value {
             Ok(x)
@@ -223,7 +115,11 @@ impl FromTransferrable<Value> for bool {
 	}
 }
 
-impl FromTransferrable<Value> for i64 {
+impl Transferrable for i64 {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_NUMBER(Number::SR_NUMBER_INT(self)))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_NUMBER(Number::SR_NUMBER_INT(x)) = value {
             Ok(x)
@@ -233,7 +129,11 @@ impl FromTransferrable<Value> for i64 {
 	}
 }
 
-impl FromTransferrable<Value> for f64 {
+impl Transferrable for f64 {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_NUMBER(Number::SR_NUMBER_FLOAT(self)))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_NUMBER(Number::SR_NUMBER_FLOAT(x)) = value {
             Ok(x)
@@ -243,7 +143,11 @@ impl FromTransferrable<Value> for f64 {
 	}
 }
 
-impl FromTransferrable<Value> for Number {
+impl Transferrable for Number {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_NUMBER(self))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_NUMBER(x) = value {
             Ok(x)
@@ -253,7 +157,11 @@ impl FromTransferrable<Value> for Number {
 	}
 }
 
-impl FromTransferrable<Value> for sql::Number {
+impl Transferrable for sql::Number {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_NUMBER(self.into()))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_NUMBER(x) = value {
             Ok(x.into())
@@ -263,7 +171,11 @@ impl FromTransferrable<Value> for sql::Number {
 	}
 }
 
-impl FromTransferrable<Value> for String {
+impl Transferrable for String {
+	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_STRAND(self.into_transferrable(controller)?))
+	}
+
 	fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_STRAND(x) = value {
             Ok(String::from_transferrable(x, controller)?)
@@ -273,7 +185,11 @@ impl FromTransferrable<Value> for String {
 	}
 }
 
-impl FromTransferrable<Value> for Duration {
+impl Transferrable for Duration {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_DURATION(self))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_DURATION(x) = value {
             Ok(x)
@@ -283,7 +199,11 @@ impl FromTransferrable<Value> for Duration {
 	}
 }
 
-impl FromTransferrable<Value> for sql::Duration {
+impl Transferrable for sql::Duration {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_DURATION(self.into()))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_DURATION(x) = value {
             Ok(x.into())
@@ -293,7 +213,11 @@ impl FromTransferrable<Value> for sql::Duration {
 	}
 }
 
-impl FromTransferrable<Value> for Datetime {
+impl Transferrable for Datetime {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_DATETIME(self))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_DATETIME(x) = value {
             Ok(x)
@@ -303,7 +227,11 @@ impl FromTransferrable<Value> for Datetime {
 	}
 }
 
-impl FromTransferrable<Value> for sql::Datetime {
+impl Transferrable for sql::Datetime {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_DATETIME(self.into()))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_DATETIME(x) = value {
             Ok(x.try_into()?)
@@ -313,7 +241,11 @@ impl FromTransferrable<Value> for sql::Datetime {
 	}
 }
 
-impl FromTransferrable<Value> for Uuid {
+impl Transferrable for Uuid {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_UUID(self))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_UUID(x) = value {
             Ok(x)
@@ -323,7 +255,11 @@ impl FromTransferrable<Value> for Uuid {
 	}
 }
 
-impl FromTransferrable<Value> for sql::Uuid {
+impl Transferrable for sql::Uuid {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_UUID(self.into()))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_UUID(x) = value {
             Ok(x.into())
@@ -333,7 +269,11 @@ impl FromTransferrable<Value> for sql::Uuid {
 	}
 }
 
-impl FromTransferrable<Value> for Array {
+impl Transferrable for Array {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_ARRAY(self))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_ARRAY(x) = value {
             Ok(x)
@@ -343,7 +283,11 @@ impl FromTransferrable<Value> for Array {
 	}
 }
 
-impl FromTransferrable<Value> for sql::Array {
+impl Transferrable for sql::Array {
+	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_ARRAY(self.into_transferrable(controller)?))
+	}
+
 	fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_ARRAY(x) = value {
             Ok(sql::Array::from_transferrable(x, controller)?)
@@ -353,7 +297,11 @@ impl FromTransferrable<Value> for sql::Array {
 	}
 }
 
-impl FromTransferrable<Value> for Object {
+impl Transferrable for Object {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_OBJECT(self))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_OBJECT(x) = value {
             Ok(x)
@@ -363,7 +311,11 @@ impl FromTransferrable<Value> for Object {
 	}
 }
 
-impl FromTransferrable<Value> for sql::Object {
+impl Transferrable for sql::Object {
+	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_OBJECT(self.into_transferrable(controller)?))
+	}
+
 	fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_OBJECT(x) = value {
             Ok(sql::Object::from_transferrable(x, controller)?)
@@ -373,7 +325,11 @@ impl FromTransferrable<Value> for sql::Object {
 	}
 }
 
-impl FromTransferrable<Value> for Bytes {
+impl Transferrable for Bytes {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_BYTES(self))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_BYTES(x) = value {
             Ok(x)
@@ -383,7 +339,11 @@ impl FromTransferrable<Value> for Bytes {
 	}
 }
 
-impl FromTransferrable<Value> for sql::Bytes {
+impl Transferrable for sql::Bytes {
+	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_BYTES(self.into_transferrable(controller)?))
+	}
+
 	fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_BYTES(x) = value {
             Ok(sql::Bytes::from_transferrable(x, controller)?)
@@ -393,7 +353,11 @@ impl FromTransferrable<Value> for sql::Bytes {
 	}
 }
 
-impl FromTransferrable<Value> for Thing {
+impl Transferrable for Thing {
+	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_THING(self))
+	}
+
 	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_THING(x) = value {
             Ok(x)
@@ -403,7 +367,11 @@ impl FromTransferrable<Value> for Thing {
 	}
 }
 
-impl FromTransferrable<Value> for sql::Thing {
+impl Transferrable for sql::Thing {
+	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_THING(self.into_transferrable(controller)?))
+	}
+
 	fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_THING(x) = value {
             Ok(sql::Thing::from_transferrable(x, controller)?)
