@@ -44,7 +44,7 @@ where
         Ok((self.function)(args))
     }
 
-    pub fn args_raw(&self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray>> {
+    pub fn args_raw(&self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray<Kind>>> {
         self.args()
 
             // Map them into transferrable types
@@ -60,7 +60,7 @@ where
         self.returns().into_transferrable(controller)?.transfer(controller)
     }
 
-    pub fn invoke_raw(&self, controller: &mut dyn MemoryController, args: Transferred<TransferredArray>) -> Result<Transferred<Value>> {
+    pub fn invoke_raw(&self, controller: &mut dyn MemoryController, args: Transferred<TransferredArray<Value>>) -> Result<Transferred<Value>> {
         let args = A::accept_args(args, controller)?;
         self.invoke(args)?.into_transferrable(controller)?.transfer(controller)
     }

@@ -5,7 +5,7 @@ use anyhow::Result;
 
 #[derive(Debug, Clone)]
 #[repr(C)]
-pub struct Bytes(TransferredArray);
+pub struct Bytes(TransferredArray<u8>);
 
 impl IntoTransferrable<Bytes> for sql::Bytes {
 	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Bytes> {

@@ -4,8 +4,8 @@ use surrealdb::sql;
 use anyhow::Result;
 
 pub trait Args {
-    fn transfer_args(self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray>>;
-    fn accept_args(transferred: Transferred<TransferredArray>, controller: &mut dyn MemoryController) -> Result<Self>
+    fn transfer_args(self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray<Value>>>;
+    fn accept_args(transferred: Transferred<TransferredArray<Value>>, controller: &mut dyn MemoryController) -> Result<Self>
     where 
         Self: Sized;
     fn kinds() -> Vec<sql::Kind>;
@@ -18,7 +18,7 @@ macro_rules! impl_args {
             where
                 $($name: IntoTransferrable<Value> + FromTransferrable<Value> + KindOf),+
             {
-                fn transfer_args(self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray>> {
+                fn transfer_args(self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray<Value>>> {
                     #[allow(non_snake_case)]
                     let ($($name,)+) = self;
                     let vals = vec![
@@ -27,7 +27,7 @@ macro_rules! impl_args {
                     Ok(vals.into_transferrable(controller)?.transfer(controller)?)
                 }
 
-                fn accept_args(transferred: Transferred<TransferredArray>, controller: &mut dyn MemoryController) -> Result<Self> {
+                fn accept_args(transferred: Transferred<TransferredArray<Value>>, controller: &mut dyn MemoryController) -> Result<Self> {
                     let mut arr = Vec::<Value>::from_transferrable(TransferredArray::receive(transferred, controller)?, controller)?;
                     if arr.len() != $len {
                         return Err(Error::InvalidArgs($len, arr.len()).into())
@@ -66,11 +66,11 @@ impl_args! {
 
 // Empty impl
 impl Args for () {
-    fn transfer_args(self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray>> {
+    fn transfer_args(self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray<Value>>> {
         Ok(Vec::<Value>::new().into_transferrable(controller)?.transfer(controller)?)
     }
 
-    fn accept_args(transferred: Transferred<TransferredArray>, controller: &mut dyn MemoryController) -> Result<Self> {
+    fn accept_args(transferred: Transferred<TransferredArray<Value>>, controller: &mut dyn MemoryController) -> Result<Self> {
         let arr = Vec::<Value>::from_transferrable(TransferredArray::receive(transferred, controller)?, controller)?;
         if !arr.is_empty() {
             return Err(Error::InvalidArgs(0, arr.len()).into())
@@ -88,7 +88,7 @@ impl<T> Args for Vec<T>
 where
     T: IntoTransferrable<Value> + FromTransferrable<Value> + KindOf
 {
-    fn transfer_args(self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray>> {
+    fn transfer_args(self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray<Value>>> {
         self
             .into_iter()
             .map(|x| T::into_transferrable(x, controller))
@@ -96,7 +96,7 @@ where
             .into_transferrable(controller)?.transfer(controller)
     }
 
-    fn accept_args(transferred: Transferred<TransferredArray>, controller: &mut dyn MemoryController) -> Result<Self> {
+    fn accept_args(transferred: Transferred<TransferredArray<Value>>, controller: &mut dyn MemoryController) -> Result<Self> {
         Vec::<Value>::from_transferrable(TransferredArray::receive(transferred, controller)?, controller)?
             .into_iter()
             .map(|x| T::from_transferrable(x, controller))

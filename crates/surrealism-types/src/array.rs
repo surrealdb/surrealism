@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use crate::controller::MemoryController;
 use super::{convert::{FromTransferrable, IntoTransferrable}, value::Value};
 use surrealdb::sql;
@@ -5,14 +7,25 @@ use anyhow::Result;
 
 #[repr(C)]
 #[derive(Debug, Clone)]
-pub struct TransferredArray {
+pub struct TransferredArray<T> {
 	pub ptr: u32,
 	pub len: u32,
+    pub _phantom: PhantomData<T>,
 }
 
-impl<T: Clone> IntoTransferrable<TransferredArray> for Vec<T>
+impl<T> TransferredArray<T> {
+    pub fn from_ptr_len(ptr: u32, len: u32) -> Self {
+        Self {
+            ptr,
+            len,
+            _phantom: Default::default()
+        }
+    }
+}
+
+impl<T: Clone> IntoTransferrable<TransferredArray<T>> for Vec<T>
 {
-    fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<TransferredArray> {
+    fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<TransferredArray<T>> {
         let len = self.len();
         let byte_len = (len * std::mem::size_of::<T>()) as u32;
         let align = std::mem::align_of::<T>() as u32;
@@ -29,15 +42,12 @@ impl<T: Clone> IntoTransferrable<TransferredArray> for Vec<T>
             }
         }
 
-        Ok(TransferredArray {
-            ptr: wasm_ptr,
-            len: len as u32,
-        })
+        Ok(TransferredArray::from_ptr_len(wasm_ptr, len as u32))
     }
 }
 
-impl<T: Clone> FromTransferrable<TransferredArray> for Vec<T> {
-	fn from_transferrable(value: TransferredArray, controller: &mut dyn MemoryController) -> Result<Self> {
+impl<T: Clone> FromTransferrable<TransferredArray<T>> for Vec<T> {
+	fn from_transferrable(value: TransferredArray<T>, controller: &mut dyn MemoryController) -> Result<Self> {
 		let ptr = value.ptr as usize;
 		let len = value.len as usize;
 		let byte_len = len * std::mem::size_of::<T>();
@@ -61,7 +71,7 @@ impl<T: Clone> FromTransferrable<TransferredArray> for Vec<T> {
 
 #[derive(Debug, Clone)]
 #[repr(C)]
-pub struct Array(pub TransferredArray);
+pub struct Array(pub TransferredArray<Value>);
 
 impl IntoTransferrable<Array> for sql::Array {
 	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Array> {

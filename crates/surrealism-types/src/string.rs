@@ -4,7 +4,7 @@ use anyhow::Result;
 
 #[derive(Debug, Clone)]
 #[repr(C)]
-pub struct Strand(TransferredArray);
+pub struct Strand(TransferredArray<u8>);
 
 impl IntoTransferrable<Strand> for String {
 	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Strand> {

@@ -22,13 +22,13 @@ pub enum Kind {
 	String,
 	Uuid,
 	Regex,
-	Record(TransferredArray),
-	Geometry(TransferredArray),
+	Record(TransferredArray<Strand>),
+	Geometry(TransferredArray<Strand>),
 	Option(Transferred<Kind>),
-	Either(TransferredArray),
+	Either(TransferredArray<Kind>),
 	Set(Transferred<Kind>, COption<u64>),
 	Array(Transferred<Kind>, COption<u64>),
-	Function(COption<TransferredArray>, COption<Transferred<Kind>>),
+	Function(COption<TransferredArray<Kind>>, COption<Transferred<Kind>>),
 	Range,
 	Literal(Literal),
 }
@@ -80,7 +80,7 @@ impl IntoTransferrable<Kind> for sql::Kind {
             )),
             Self::Function(args, returns) => Ok(Kind::Function(
                 args
-                    .map(|args| -> Result<TransferredArray> { 
+                    .map(|args| -> Result<TransferredArray<Kind>> { 
                         args
                             .into_iter()
                             .map(|x| x.into_transferrable(controller))
@@ -149,7 +149,7 @@ impl FromTransferrable<Kind> for sql::Kind {
                 len.into(),
             )),
             Kind::Function(args, returns) => Ok(Self::Function(
-                Option::<TransferredArray>::from(args)
+                Option::<TransferredArray<Kind>>::from(args)
                     .map(|x| -> Result<Vec<sql::Kind>> {
                         Vec::<Kind>::from_transferrable(x, controller)?
                             .into_iter()
@@ -175,9 +175,9 @@ pub enum Literal {
 	String(Strand),
 	Number(Number),
 	Duration(Duration),
-	Array(TransferredArray),
-	Object(TransferredArray),
-	DiscriminatedObject(Strand, TransferredArray),
+	Array(TransferredArray<Kind>),
+	Object(TransferredArray<KeyValuePair<sql::Kind, Kind>>),
+	DiscriminatedObject(Strand, TransferredArray<TransferredArray<KeyValuePair<sql::Kind, Kind>>>),
 	Bool(bool),
 }
 
@@ -200,7 +200,7 @@ impl IntoTransferrable<Literal> for sql::Literal {
                 variants
                     .into_iter()
                     .map(|x| x.into_transferrable(controller))
-                    .collect::<Result<Vec<TransferredArray>>>()?
+                    .collect::<Result<Vec<TransferredArray<KeyValuePair<sql::Kind, Kind>>>>>()?
                     .into_transferrable(controller)?
             )),
             _ => Err(Error::UnsupportedKind.into())
@@ -224,7 +224,7 @@ impl FromTransferrable<Literal> for sql::Literal {
             Literal::Object(x) => Ok(Self::Object(BTreeMap::<String, sql::Kind>::from_transferrable(x, controller)?)),
             Literal::DiscriminatedObject(key, x) => Ok(Self::DiscriminatedObject(
                 String::from_transferrable(key, controller)?,
-                Vec::<TransferredArray>::from_transferrable(x, controller)?
+                Vec::<TransferredArray<KeyValuePair<sql::Kind, Kind>>>::from_transferrable(x, controller)?
                     .into_iter()
                     .map(|x| BTreeMap::<String, sql::Kind>::from_transferrable(x, controller))
                     .collect::<Result<Vec<BTreeMap<String, sql::Kind>>>>()?
@@ -233,8 +233,8 @@ impl FromTransferrable<Literal> for sql::Literal {
     }
 }
 
-impl IntoTransferrable<TransferredArray> for BTreeMap<String, sql::Kind> {
-    fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<TransferredArray> {
+impl IntoTransferrable<TransferredArray<KeyValuePair<sql::Kind, Kind>>> for BTreeMap<String, sql::Kind> {
+    fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<TransferredArray<KeyValuePair<sql::Kind, Kind>>> {
         self
             .into_iter()
             .map(|x| x.into_transferrable(controller))
@@ -243,8 +243,8 @@ impl IntoTransferrable<TransferredArray> for BTreeMap<String, sql::Kind> {
     }
 }
 
-impl FromTransferrable<TransferredArray> for BTreeMap<String, sql::Kind> {
-    fn from_transferrable(value: TransferredArray, controller: &mut dyn MemoryController) -> Result<Self> {
+impl FromTransferrable<TransferredArray<KeyValuePair<sql::Kind, Kind>>> for BTreeMap<String, sql::Kind> {
+    fn from_transferrable(value: TransferredArray<KeyValuePair<sql::Kind, Kind>>, controller: &mut dyn MemoryController) -> Result<Self> {
         Ok(BTreeMap::from_iter(Vec::<KeyValuePair<sql::Kind, Kind>>::from_transferrable(value, controller)?
             .into_iter()
             .map(|x| FromTransferrable::from_transferrable(x, controller))

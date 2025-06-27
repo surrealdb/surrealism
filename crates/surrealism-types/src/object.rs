@@ -7,7 +7,7 @@ use anyhow::Result;
 
 #[derive(Debug, Clone)]
 #[repr(C)]
-pub struct Object(TransferredArray);
+pub struct Object(TransferredArray<KeyValuePair>);
 
 impl IntoTransferrable<Object> for sql::Object {
 	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Object> {
