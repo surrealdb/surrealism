@@ -78,15 +78,15 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
         #fn_vis #fn_sig #fn_block
 
         #[unsafe(no_mangle)]
-        pub extern "C" fn #export_ident(ptr: u32, len: u32) -> u32 {
+        pub extern "C" fn #export_ident(ptr: u32) -> u32 {
             use surrealism::types::convert::Transfer;
             let mut controller = surrealism::Controller {};
             let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
                 |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
             );
-            f.invoke_raw(&mut controller, (ptr, len).into())
+            f.invoke_raw(&mut controller, ptr.into())
                 .unwrap()
-                .ptr
+                .ptr()
         }
 
         #[unsafe(no_mangle)]
@@ -98,7 +98,7 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
             );
             f.args_raw(&mut controller)
                 .unwrap()
-                .ptr
+                .ptr()
         }
 
         #[unsafe(no_mangle)]
@@ -110,7 +110,7 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
             );
             f.returns_raw(&mut controller)
                 .unwrap()
-                .ptr
+                .ptr()
         }
     };
 

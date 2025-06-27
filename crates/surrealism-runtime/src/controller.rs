@@ -1,7 +1,7 @@
 use anyhow::Result;
 use wasmtime::*;
 use surrealdb::sql;
-use surrealism_types::{args::Args, array::TransferredArray, controller::MemoryController, convert::{FromTransferrable, Transfer, Transferred}, kind::Kind, value::Value};
+use surrealism_types::{args::Args, array::TransferredArray, controller::MemoryController, convert::{FromTransferrable, Transfer}, kind::Kind, value::Value};
 use wasmtime_wasi::preview1::{self, WasiP1Ctx};
 use wasmtime_wasi::p2::WasiCtxBuilder;
 
@@ -53,9 +53,9 @@ impl Controller {
     pub fn invoke<A: Args>(&mut self, name: Option<String>, args: A) -> Result<sql::Value> {
         let name = format!("__sr_fnc__{}", name.unwrap_or_default());
         let args = args.transfer_args(self)?;
-        let invoke = self.instance.get_typed_func::<(u32, u32), (u32,)>(&mut self.store, &name)?;
-        let (ptr,) = invoke.call(&mut self.store, (args.ptr, args.len))?;
-        let value = Value::receive(Transferred { ptr, len: std::mem::size_of::<Value>() as u32 }, self)?;
+        let invoke = self.instance.get_typed_func::<(u32,), (u32,)>(&mut self.store, &name)?;
+        let (ptr,) = invoke.call(&mut self.store, (args.ptr(),))?;
+        let value = Value::receive(ptr.into(), self)?;
         sql::Value::from_transferrable(value, self)
     }
 
@@ -63,7 +63,7 @@ impl Controller {
         let name = format!("__sr_args__{}", name.unwrap_or_default());
         let args = self.instance.get_typed_func::<(), (u32,)>(&mut self.store, &name)?;
         let (ptr,) = args.call(&mut self.store, ())?;
-        let array = TransferredArray::receive(Transferred { ptr, len: std::mem::size_of::<TransferredArray>() as u32 }, self)?;
+        let array = TransferredArray::receive(ptr.into(), self)?;
         Vec::<Kind>::from_transferrable(array, self)?
             .into_iter()
             .map(|x| sql::Kind::from_transferrable(x, self))
@@ -74,7 +74,7 @@ impl Controller {
         let name = format!("__sr_returns__{}", name.unwrap_or_default());
         let returns = self.instance.get_typed_func::<(), (u32,)>(&mut self.store, &name)?;
         let (ptr,) = returns.call(&mut self.store, ())?;
-        let kind = Kind::receive(Transferred { ptr, len: std::mem::size_of::<Kind>() as u32 }, self)?;
+        let kind = Kind::receive(ptr.into(), self)?;
         sql::Kind::from_transferrable(kind, self)
     }
 }

@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use surrealdb::sql;
+use surrealism_types::array::TransferredArray;
 use surrealism_types::controller::MemoryController;
 use surrealism_types::convert::{IntoTransferrable, Transfer, Transferred};
 use surrealism_types::args::Args;
@@ -43,9 +44,9 @@ where
         Ok((self.function)(args))
     }
 
-    pub fn args_raw(&self, controller: &mut dyn MemoryController) -> Result<Transferred> {
+    pub fn args_raw(&self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray>> {
         self.args()
-        
+
             // Map them into transferrable types
             .into_iter()
             .map(|x| sql::Kind::into_transferrable(x, controller))
@@ -55,11 +56,11 @@ where
             .into_transferrable(controller)?.transfer(controller)
     }
 
-    pub fn returns_raw(&self, controller: &mut dyn MemoryController) -> Result<Transferred> {
+    pub fn returns_raw(&self, controller: &mut dyn MemoryController) -> Result<Transferred<Kind>> {
         self.returns().into_transferrable(controller)?.transfer(controller)
     }
 
-    pub fn invoke_raw(&self, controller: &mut dyn MemoryController, args: Transferred) -> Result<Transferred> {
+    pub fn invoke_raw(&self, controller: &mut dyn MemoryController, args: Transferred<TransferredArray>) -> Result<Transferred<Value>> {
         let args = A::accept_args(args, controller)?;
         self.invoke(args)?.into_transferrable(controller)?.transfer(controller)
     }

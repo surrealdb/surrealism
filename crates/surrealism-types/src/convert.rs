@@ -1,25 +1,24 @@
+use std::marker::PhantomData;
 use crate::{controller::MemoryController, err::Error};
-
 use super::{array::Array, bytes::Bytes, datetime::Datetime, duration::Duration, thing::Thing, uuid::Uuid, value::{Number, Object, Value}};
-
 use surrealdb::sql;
 use surrealdb::sql::Kind;
 use anyhow::Result;
 
 pub trait Transfer {
     /// Transfers the value into WASM memory, returns a `Transferred` handle
-    fn transfer(self, controller: &mut dyn MemoryController) -> Result<Transferred>
+    fn transfer(self, controller: &mut dyn MemoryController) -> Result<Transferred<Self>>
     where
         Self: Sized;
 
     /// Default implementation of `accept`, does nothing unless overridden
-    fn receive(transferred: Transferred, controller: &mut dyn MemoryController) -> Result<Self>
+    fn receive(transferred: Transferred<Self>, controller: &mut dyn MemoryController) -> Result<Self>
     where
         Self: Sized;
 }
 
 impl<T: Clone> Transfer for T {
-    fn transfer(self, controller: &mut dyn MemoryController) -> Result<Transferred> {
+    fn transfer(self, controller: &mut dyn MemoryController) -> Result<Transferred<T>> {
         let len = std::mem::size_of::<T>() as u32;
 		let align = std::mem::align_of::<T>() as u32;
         let ptr = controller.alloc(len, align)?;
@@ -33,18 +32,20 @@ impl<T: Clone> Transfer for T {
 
         std::mem::forget(self);
 
-        Ok(Transferred { ptr, len })
+        Ok(Transferred::from_ptr(ptr))
     }
 
-    fn receive(transferred: Transferred, controller: &mut dyn MemoryController) -> Result<Self> {
-        let memory = controller.mut_mem(transferred.ptr, transferred.len);
+    fn receive(transferred: Transferred<T>, controller: &mut dyn MemoryController) -> Result<Self> {
+		let ptr = transferred.ptr();
+		let len = transferred.len();
+        let memory = controller.mut_mem(ptr, len);
 
         let val = unsafe {
             let typed_ptr = memory.as_ptr() as *const T;
             (*typed_ptr).clone()
         };
 
-        controller.free(transferred.ptr, transferred.len)?;
+        controller.free(ptr, len)?;
 
         Ok(val)
     }
@@ -52,20 +53,31 @@ impl<T: Clone> Transfer for T {
 
 #[repr(C)]
 #[derive(Clone, Debug)]
-pub struct Transferred {
-    pub ptr: u32,
-    pub len: u32,
-}
+pub struct Transferred<T>(u32, PhantomData<T>);
 
-impl From<(u32, u32)> for Transferred {
-	fn from((ptr, len): (u32, u32)) -> Self {
-		Self { ptr, len }
+impl<T> Transferred<T> {
+	pub fn from_ptr(ptr: u32) -> Self {
+		Self(ptr, Default::default())
+	}
+
+	pub fn ptr(&self) -> u32 {
+		self.0
+	}
+
+	pub fn len(&self) -> u32 {
+		std::mem::size_of::<T>() as u32
 	}
 }
 
-impl From<Transferred> for (u32, u32) {
-	fn from(Transferred { ptr, len }: Transferred) -> Self {
-		(ptr, len)
+impl<T> From<Transferred<T>> for u32 {
+	fn from(value: Transferred<T>) -> Self {
+		value.0
+	}
+}
+
+impl<T> From<u32> for Transferred<T> {
+	fn from(ptr: u32) -> Self {
+		Transferred::from_ptr(ptr)
 	}
 }
 

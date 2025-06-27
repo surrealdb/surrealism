@@ -24,11 +24,11 @@ pub enum Kind {
 	Regex,
 	Record(TransferredArray),
 	Geometry(TransferredArray),
-	Option(Transferred),
+	Option(Transferred<Kind>),
 	Either(TransferredArray),
-	Set(Transferred, COption<u64>),
-	Array(Transferred, COption<u64>),
-	Function(COption<TransferredArray>, COption<Transferred>),
+	Set(Transferred<Kind>, COption<u64>),
+	Array(Transferred<Kind>, COption<u64>),
+	Function(COption<TransferredArray>, COption<Transferred<Kind>>),
 	Range,
 	Literal(Literal),
 }
@@ -90,7 +90,7 @@ impl IntoTransferrable<Kind> for sql::Kind {
                     .transpose()?
                     .into(),
                 returns
-                    .map(|x| -> Result<Transferred> { 
+                    .map(|x| -> Result<Transferred<Kind>> { 
                         Ok(x.into_transferrable(controller)?.transfer(controller)?)
                     })
                     .transpose()?
@@ -157,7 +157,7 @@ impl FromTransferrable<Kind> for sql::Kind {
                             .collect::<Result<Vec<sql::Kind>>>()
                     })
                     .transpose()?,
-                Option::<Transferred>::from(returns)
+                Option::<Transferred<Kind>>::from(returns)
                     .map(|x| -> Result<Box<sql::Kind>> {
                         Ok(Box::new(sql::Kind::from_transferrable(Kind::receive(x, controller)?, controller)?))
                     })
