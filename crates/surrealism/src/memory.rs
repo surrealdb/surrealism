@@ -1,6 +1,6 @@
 #[unsafe(no_mangle)]
-pub extern "C" fn __sr_alloc(len: u32) -> u32 {
-    let layout = std::alloc::Layout::from_size_align(len as usize, 8).expect("invalid layout");
+pub extern "C" fn __sr_alloc(len: u32, align: u32) -> u32 {
+    let layout = std::alloc::Layout::from_size_align(len as usize, align as usize).expect("invalid layout");
     let ptr = unsafe { std::alloc::alloc(layout) };
 
     if ptr.is_null() {

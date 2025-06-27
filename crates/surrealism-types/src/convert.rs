@@ -1,6 +1,6 @@
 use crate::{controller::MemoryController, err::Error};
 
-use super::{array::Array, bytes::Bytes, datetime::Datetime, duration::Duration, thing::Thing, utils::CStringExt2, uuid::Uuid, value::{Number, Object, Value}};
+use super::{array::Array, bytes::Bytes, datetime::Datetime, duration::Duration, thing::Thing, uuid::Uuid, value::{Number, Object, Value}};
 
 use surrealdb::sql;
 use surrealdb::sql::Kind;
@@ -21,7 +21,8 @@ pub trait Transfer {
 impl<T: Clone> Transfer for T {
     fn transfer(self, controller: &mut dyn MemoryController) -> Result<Transferred> {
         let len = std::mem::size_of::<T>() as u32;
-        let ptr = controller.alloc(len)?;
+		let align = std::mem::align_of::<T>() as u32;
+        let ptr = controller.alloc(len, align)?;
         let memory = controller.mut_mem(ptr, len);
 
         unsafe {
@@ -101,8 +102,8 @@ impl IntoTransferrable<Value> for f64 {
 }
 
 impl IntoTransferrable<Value> for String {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_STRAND(self.to_string_t()))
+	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
+		Ok(Value::SR_VALUE_STRAND(self.into_transferrable(controller)?))
 	}
 }
 
@@ -251,9 +252,9 @@ impl FromTransferrable<Value> for sql::Number {
 }
 
 impl FromTransferrable<Value> for String {
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+	fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
 		if let Value::SR_VALUE_STRAND(x) = value {
-            Ok(x.into())
+            Ok(String::from_transferrable(x, controller)?)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::String).into())
         }

@@ -12,18 +12,16 @@ homepage.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 anyhow = "1.0.98"
 chrono.workspace = true
-libc.workspace = true
+clap = { version = "4.5.40", features = ["derive"] }
 surrealdb.workspace = true
 surrealism-types = { version = "3.0.0", path = "../surrealism-types" }
 thiserror = "2.0.12"
 uuid.workspace = true
-wasmtime = "33.0.0"
+wasmtime = "34.0.1"
+wasmtime-wasi = "34.0.1"
 
 [lints]
 workspace = true

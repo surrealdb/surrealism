@@ -15,7 +15,8 @@ impl<T: Clone> IntoTransferrable<TransferredArray> for Vec<T>
     fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<TransferredArray> {
         let len = self.len();
         let byte_len = (len * std::mem::size_of::<T>()) as u32;
-        let wasm_ptr = controller.alloc(byte_len)?;
+        let align = std::mem::align_of::<T>() as u32;
+        let wasm_ptr = controller.alloc(byte_len, align)?;
         let memory = controller.mut_mem(wasm_ptr, byte_len);
 
         unsafe {

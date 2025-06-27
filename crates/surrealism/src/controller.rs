@@ -8,8 +8,8 @@ pub struct Controller {
 }
 
 impl MemoryController for Controller {
-    fn alloc(&mut self, len: u32) -> Result<u32> {
-        Ok(__sr_alloc(len))
+    fn alloc(&mut self, len: u32, align: u32) -> Result<u32> {
+        Ok(__sr_alloc(len, align))
     }
 
     fn free(&mut self, ptr: u32, len: u32) -> Result<()> {

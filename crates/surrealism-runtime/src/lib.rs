@@ -1,5 +1,0 @@
-mod controller;
-
-fn main() {
-    
-}

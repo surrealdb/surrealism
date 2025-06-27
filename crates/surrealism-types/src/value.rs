@@ -1,9 +1,10 @@
 use surrealdb::sql;
 use crate::controller::MemoryController;
+use crate::string::Strand;
 use super::convert::{FromTransferrable, IntoTransferrable};
 use super::datetime::Datetime;
 pub use super::{array::Array, number::Number, object::Object};
-use super::{bytes::Bytes, string::string_t, thing::Thing, utils::CStringExt2, uuid::Uuid};
+use super::{bytes::Bytes, thing::Thing, uuid::Uuid};
 use super::duration::Duration;
 use surrealdb::sql::Kind;
 use anyhow::Result;
@@ -17,7 +18,7 @@ pub enum Value {
 	SR_VALUE_NULL,
 	SR_VALUE_BOOL(bool),
 	SR_VALUE_NUMBER(Number),
-	SR_VALUE_STRAND(string_t),
+	SR_VALUE_STRAND(Strand),
 	SR_VALUE_DURATION(Duration),
 	SR_VALUE_DATETIME(Datetime),
 	SR_VALUE_UUID(Uuid),
@@ -35,7 +36,7 @@ impl IntoTransferrable<Value> for sql::Value {
 			Self::Null => Ok(Value::SR_VALUE_NULL),
 			Self::Bool(x) => Ok(Value::SR_VALUE_BOOL(x)),
 			Self::Number(n) => Ok(Value::SR_VALUE_NUMBER(n.into())),
-			Self::Strand(s) => Ok(Value::SR_VALUE_STRAND(s.0.to_string_t())),
+			Self::Strand(s) => Ok(Value::SR_VALUE_STRAND(s.0.into_transferrable(controller)?)),
 			Self::Duration(d) => Ok(Value::SR_VALUE_DURATION(d.into())),
 			Self::Datetime(dt) => Ok(Value::SR_VALUE_DATETIME(dt.into())),
 			Self::Uuid(u) => Ok(Value::SR_VALUE_UUID(u.into())),
@@ -56,7 +57,7 @@ impl FromTransferrable<Value> for sql::Value {
 			Value::SR_VALUE_NULL => Ok(Self::Null),
 			Value::SR_VALUE_BOOL(x) => Ok(Self::Bool(x)),
 			Value::SR_VALUE_NUMBER(n) => Ok(Self::Number(n.into())),
-			Value::SR_VALUE_STRAND(s) => Ok(String::from(s).into()),
+			Value::SR_VALUE_STRAND(s) => Ok(String::from_transferrable(s, controller)?.into()),
 			Value::SR_VALUE_DURATION(d) => Ok(Self::Duration(d.into())),
 			Value::SR_VALUE_DATETIME(d) => Ok(Self::Datetime(d.try_into()?)),
 			Value::SR_VALUE_UUID(u) => Ok(Self::Uuid(u.into())),

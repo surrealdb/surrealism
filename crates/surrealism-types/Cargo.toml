@@ -15,7 +15,6 @@ categories.workspace = true
 [dependencies]
 anyhow = "1.0.98"
 chrono.workspace = true
-libc.workspace = true
 surrealdb.workspace = true
 thiserror = "2.0.12"
 uuid.workspace = true

@@ -86,8 +86,6 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
             );
             f.invoke_raw(&mut controller, (ptr, len).into())
                 .unwrap()
-                .transfer(&mut controller)
-                .unwrap()
                 .ptr
         }
 
@@ -100,8 +98,6 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
             );
             f.args_raw(&mut controller)
                 .unwrap()
-                .transfer(&mut controller)
-                .unwrap()
                 .ptr
         }
 
@@ -113,8 +109,6 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
                 |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
             );
             f.returns_raw(&mut controller)
-                .unwrap()
-                .transfer(&mut controller)
                 .unwrap()
                 .ptr
         }

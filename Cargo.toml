@@ -23,12 +23,9 @@ categories = ["database-implementations", "data-structures", "embedded"]
 
 [workspace.dependencies]
 # workspace internal dependencies
-surrealdb = { version = "2.3.5", default-features = false, features = ["kv-mem"] }
-getrandom = "0.3.2"
+surrealdb = { version = "2.3.6", default-features = false, features = ["kv-mem"] }
 uuid = "1.10.0"
 chrono = "0.4.38"
-libc = "0.2.158"
-cbindgen = "0.27.0"
 
 [workspace.lints.clippy]
 

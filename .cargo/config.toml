@@ -1,2 +1,2 @@
 [build]
-# rustflags = ["--cfg", "uuid_unstable", "--cfg", "surrealdb_unstable", "--cfg", 'getrandom_backend="wasm_js"']
+# rustflags = ["--cfg", "uuid_unstable", "--cfg", "surrealdb_unstable"]

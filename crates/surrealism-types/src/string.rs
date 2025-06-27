@@ -1,95 +1,25 @@
-use std::{
-	ffi::{CStr, CString, c_char},
-	fmt::{Debug, Display},
-	ptr,
-};
+use crate::controller::MemoryController;
+use super::{array::TransferredArray, convert::{FromTransferrable, IntoTransferrable}, value::Value};
+use anyhow::Result;
 
-use super::{utils::CStringExt2, value::Value};
+#[derive(Debug, Clone)]
+#[repr(C)]
+pub struct Strand(TransferredArray);
 
-#[repr(transparent)]
-#[allow(non_camel_case_types)]
-pub struct string_t(pub *mut c_char);
-
-impl string_t {
-	pub fn null() -> string_t {
-		string_t(ptr::null_mut())
-	}
-
-	pub fn from_error(s: impl std::error::Error) -> string_t {
-		s.to_string().to_string_t()
+impl IntoTransferrable<Strand> for String {
+	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Strand> {
+		Ok(Strand(self.as_bytes().to_vec().into_transferrable(controller)?))
 	}
 }
 
-impl From<string_t> for Value {
-    fn from(value: string_t) -> Self {
+impl FromTransferrable<Strand> for String {
+	fn from_transferrable(value: Strand, controller: &mut dyn MemoryController) -> Result<Self> {
+		Ok(String::from_utf8(Vec::<u8>::from_transferrable(value.0, controller)?).expect("Found non UTF-8 characters while reconstructing string"))
+	}
+}
+
+impl From<Strand> for Value {
+    fn from(value: Strand) -> Self {
         Value::SR_VALUE_STRAND(value)
     }
-}
-
-impl Debug for string_t {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		let cstr = unsafe { CStr::from_ptr(self.0) };
-		write!(f, "{}", cstr.to_string_lossy())
-	}
-}
-
-impl From<string_t> for String {
-	fn from(value: string_t) -> Self {
-		let cstr = unsafe { CStr::from_ptr(value.0) };
-		cstr.to_string_lossy().into()
-	}
-}
-
-impl Drop for string_t {
-	fn drop(&mut self) {
-		let ptr = self.0;
-		if !ptr.is_null() {
-			let _ = unsafe { CString::from_raw(ptr) };
-		}
-	}
-}
-
-impl Clone for string_t {
-	fn clone(&self) -> Self {
-		let ptr = self.0;
-		if ptr.is_null() {
-			return string_t(ptr::null_mut());
-		} else {
-			let cstr = unsafe { CStr::from_ptr(ptr) };
-			let cstring = CString::from(cstr);
-			string_t(cstring.into_raw())
-		}
-	}
-}
-
-impl<D: Display> From<D> for string_t {
-	fn from(value: D) -> Self {
-		value.to_string().to_string_t()
-	}
-}
-
-impl Default for string_t {
-	fn default() -> Self {
-		Self(ptr::null_mut())
-	}
-}
-
-impl PartialEq for string_t {
-	fn eq(&self, other: &Self) -> bool {
-		// self.0 == other.0
-		let self_cstr = unsafe { CStr::from_ptr(self.0) };
-		let other_cstr = unsafe { CStr::from_ptr(other.0) };
-		self_cstr == other_cstr
-	}
-}
-
-// pub fn ptr_to_str(ptr: *const c_char) -> &'static str {
-//     let cstr = unsafe { CStr::from_ptr(ptr) };
-//     // // TODO(raphaeldarley): remove panic because of ub, or check its always caught
-//     cstr.to_str().unwrap()
-// }
-
-#[unsafe(export_name = "sr_free_string")]
-pub extern "C" fn free_string(string: string_t) {
-	drop(string)
 }

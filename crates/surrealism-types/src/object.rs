@@ -1,8 +1,8 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, marker::PhantomData};
 
 use surrealdb::sql;
-use crate::controller::MemoryController;
-use super::{array::TransferredArray, convert::{FromTransferrable, IntoTransferrable}, string::string_t, utils::CStringExt2, value::Value};
+use crate::{controller::MemoryController, string::Strand};
+use super::{array::TransferredArray, convert::{FromTransferrable, IntoTransferrable}, value::Value};
 use anyhow::Result;
 
 #[derive(Debug, Clone)]
@@ -13,10 +13,7 @@ impl IntoTransferrable<Object> for sql::Object {
 	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Object> {
 		Ok(Object(self.0
 			.into_iter()
-			.map(|(k, v)| v.into_transferrable(controller).map(|value| KeyValuePair {
-				key: k.to_string_t(),
-				value
-			}))
+			.map(|x| x.into_transferrable(controller))
 			.collect::<Result<Vec<KeyValuePair>>>()?
 			.into_transferrable(controller)?
 		))
@@ -27,10 +24,7 @@ impl FromTransferrable<Object> for sql::Object {
 	fn from_transferrable(value: Object, controller: &mut dyn MemoryController) -> Result<Self> {
 		let entries = Vec::<KeyValuePair>::from_transferrable(value.0, controller)?
 			.into_iter()
-			.map(|KeyValuePair { key, value }| {
-				sql::Value::from_transferrable(value, controller)
-					.map(|v| (key.into(), v))
-			})
+			.map(|x| FromTransferrable::from_transferrable(x, controller))
 			.collect::<Result<Vec<(String, sql::Value)>>>()?;
 
 		Ok(BTreeMap::from_iter(entries).into())
@@ -45,7 +39,38 @@ impl From<Object> for Value {
 
 #[repr(C)]
 #[derive(Debug, Clone)]
-pub struct KeyValuePair<T = Value> {
-	pub key: string_t,
+pub struct KeyValuePair<X = sql::Value, T = Value>
+where
+	X: IntoTransferrable<T> + FromTransferrable<T>
+{
+	pub key: Strand,
 	pub value: T,
+	_phantom: PhantomData<X>,
+}
+
+impl<X, T> IntoTransferrable<KeyValuePair<X, T>> for (String, X)
+where
+	X: IntoTransferrable<T> + FromTransferrable<T>
+{
+	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<KeyValuePair<X, T>> {
+		let key = self.0.into_transferrable(controller)?;
+		let value = self.1.into_transferrable(controller)?;
+		Ok(KeyValuePair {
+			key,
+			value,
+			_phantom: Default::default(),
+		})
+	}
+}
+
+impl<X, T> FromTransferrable<KeyValuePair<X, T>> for (String, X)
+where
+	X: IntoTransferrable<T> + FromTransferrable<T>
+{
+	fn from_transferrable(KeyValuePair { key, value, .. }: KeyValuePair<X, T>, controller: &mut dyn MemoryController) -> Result<Self> {
+		Ok((
+			String::from_transferrable(key, controller)?,
+			X::from_transferrable(value, controller)?,
+		))
+	}
 }
