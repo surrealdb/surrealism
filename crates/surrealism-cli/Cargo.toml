@@ -12,6 +12,10 @@ homepage.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[[bin]]
+name = "surrealism"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1.0.98"
 clap = "4.5.40"
