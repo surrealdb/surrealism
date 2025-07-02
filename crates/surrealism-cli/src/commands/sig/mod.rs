@@ -29,7 +29,7 @@ impl SurrealismCommand for SigCommand {
             "\nSignature:\n - {}({}) -> {}",
             self.fnc.as_deref().unwrap_or("<default>"),
             args.iter()
-                .map(|arg| format!("{}", arg))
+                .map(|arg| format!("{arg}"))
                 .collect::<Vec<_>>()
                 .join(", "),
             returns

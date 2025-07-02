@@ -36,11 +36,9 @@ impl SurrealismCommand for InfoCommand {
 
         let title = format!(
             "Info for @{}/{}@{}",
-            meta.organisation,
-            meta.name,
-            meta.version.to_string(),
+            meta.organisation, meta.name, meta.version,
         );
-        println!("\n{}", title);
+        println!("\n{title}");
         println!("{}\n", "=".repeat(title.len() + 2));
 
         for (name, args, returns) in exports {
@@ -53,7 +51,7 @@ impl SurrealismCommand for InfoCommand {
             println!(
                 "- {name}({}) -> {}",
                 args.iter()
-                    .map(|arg| format!("{}", arg))
+                    .map(|arg| format!("{arg}"))
                     .collect::<Vec<_>>()
                     .join(", "),
                 returns

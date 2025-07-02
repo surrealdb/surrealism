@@ -75,6 +75,7 @@ impl<T> Transferred<T> {
         self.0
     }
 
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> u32 {
         std::mem::size_of::<T>() as u32
     }
@@ -92,9 +93,7 @@ impl<T> From<u32> for Transferred<T> {
     }
 }
 
-//////////////////////////
-/// INTO TRANSFERRABLE ///
-//////////////////////////
+// Transferrable
 
 pub trait Transferrable<T = Value> {
     fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<T>;

@@ -98,7 +98,7 @@ impl Transferrable<Kind> for sql::Kind {
                 .into(),
                 returns
                     .map(|x| -> Result<Transferred<Kind>> {
-                        Ok(x.into_transferrable(controller)?.transfer(controller)?)
+                        x.into_transferrable(controller)?.transfer(controller)
                     })
                     .transpose()?
                     .into(),

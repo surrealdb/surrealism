@@ -11,10 +11,11 @@ impl MemoryController for Controller {
     }
 
     fn free(&mut self, ptr: u32, len: u32) -> Result<()> {
-        Ok(__sr_free(ptr, len))
+        __sr_free(ptr, len);
+        Ok(())
     }
 
-    fn mut_mem<'a>(&'a mut self, ptr: u32, len: u32) -> &'a mut [u8] {
+    fn mut_mem(&mut self, ptr: u32, len: u32) -> &mut [u8] {
         unsafe {
             let ptr = ptr as usize as *mut u8;
             std::slice::from_raw_parts_mut(ptr, len as usize)

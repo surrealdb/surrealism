@@ -36,7 +36,7 @@ macro_rules! impl_args {
                     let vals = vec![
                         $($name.into_transferrable(controller)?),+
                     ];
-                    Ok(vals.into_transferrable(controller)?.transfer(controller)?)
+                    vals.into_transferrable(controller)?.transfer(controller)
                 }
 
                 fn accept_args(transferred: Transferred<TransferredArray<Value>>, controller: &mut dyn MemoryController) -> Result<Self> {
@@ -82,9 +82,9 @@ impl Args for () {
         self,
         controller: &mut dyn MemoryController,
     ) -> Result<Transferred<TransferredArray<Value>>> {
-        Ok(Vec::<Value>::new()
+        Vec::<Value>::new()
             .into_transferrable(controller)?
-            .transfer(controller)?)
+            .transfer(controller)
     }
 
     fn accept_args(

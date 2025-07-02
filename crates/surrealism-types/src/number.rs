@@ -26,7 +26,7 @@ impl From<c_float> for Number {
 
 impl From<c_double> for Number {
     fn from(value: c_double) -> Self {
-        Number::SR_NUMBER_FLOAT(value as f64)
+        Number::SR_NUMBER_FLOAT(value)
     }
 }
 

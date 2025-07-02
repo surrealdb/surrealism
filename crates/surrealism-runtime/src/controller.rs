@@ -147,7 +147,7 @@ impl MemoryController for Controller {
         Controller::free(self, ptr, len)
     }
 
-    fn mut_mem<'a>(&'a mut self, ptr: u32, len: u32) -> &'a mut [u8] {
+    fn mut_mem(&mut self, ptr: u32, len: u32) -> &mut [u8] {
         let mem = self.memory.data_mut(&mut self.store);
         &mut mem[(ptr as usize)..(ptr as usize) + (len as usize)]
     }

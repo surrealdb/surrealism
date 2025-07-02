@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{Context, Result};
@@ -40,7 +40,7 @@ impl SurrealismCommand for BuildCommand {
     }
 }
 
-fn load_config(path: &PathBuf) -> Result<SurrealismConfig> {
+fn load_config(path: &Path) -> Result<SurrealismConfig> {
     let surrealism_toml = path.join("surrealism.toml");
     if !surrealism_toml.exists() {
         anyhow::bail!("surrealism.toml not found in the current directory");
@@ -54,7 +54,7 @@ fn load_config(path: &PathBuf) -> Result<SurrealismConfig> {
 fn build_wasm_module(path: &PathBuf) -> Result<()> {
     println!("Building WASM module...");
     let cargo_status = Command::new("cargo")
-        .args(&["build", "--target", "wasm32-wasip1", "--release"])
+        .args(["build", "--target", "wasm32-wasip1", "--release"])
         .current_dir(path)
         .status()
         .with_context(|| "Failed to execute cargo build")?;
@@ -182,7 +182,7 @@ fn get_source_wasm(path: &PathBuf) -> Result<PathBuf> {
 
 fn metadata(path: &PathBuf) -> Result<serde_json::Value> {
     let output = Command::new("cargo")
-        .args(&["metadata", "--format-version", "1", "--no-deps"])
+        .args(["metadata", "--format-version", "1", "--no-deps"])
         .current_dir(path)
         .output()
         .with_context(|| "Failed to execute cargo metadata")?;

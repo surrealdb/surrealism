@@ -24,7 +24,7 @@ impl SurrealismCommand for RunCommand {
             .with_context(|| "Failed to invoke function")?;
 
         // Print the result with pretty display formatting
-        println!("{:#}", result);
+        println!("{result:#}");
 
         Ok(())
     }
