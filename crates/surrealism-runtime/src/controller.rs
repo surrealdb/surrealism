@@ -1,24 +1,26 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use wasmtime::*;
 use surrealdb::sql;
 use surrealism_types::{args::Args, array::TransferredArray, controller::MemoryController, convert::{Transferrable, Transfer}, kind::Kind, value::Value};
 use wasmtime_wasi::preview1::{self, WasiP1Ctx};
 use wasmtime_wasi::p2::WasiCtxBuilder;
+use crate::{config::SurrealismConfig, package::SurrealismPackage};
 
 pub struct Controller {
     pub store: Store<WasiP1Ctx>,
     pub instance: Instance,
     pub memory: Memory,
+    pub config: SurrealismConfig,
 }
 
 impl Controller {
-    pub fn from_file(file: &str) -> Self {
+    pub fn from_package(SurrealismPackage { wasm, config }: SurrealismPackage) -> Result<Self> {
         let engine = Engine::default();
-        let module = Module::from_file(&engine, file).unwrap();
+        let module = Module::new(&engine, wasm).with_context(|| "Failed to construct module")?;
     
         let mut linker: Linker<WasiP1Ctx> = Linker::new(&engine);
-        preview1::add_to_linker_sync(&mut linker, |t| t).unwrap();
-        let pre: InstancePre<WasiP1Ctx> = linker.instantiate_pre(&module).unwrap();
+        preview1::add_to_linker_sync(&mut linker, |t| t).with_context(|| "failed to construct linker")?;
+        let pre: InstancePre<WasiP1Ctx> = linker.instantiate_pre(&module).with_context(|| "failed to construct instancepre")?;
 
         let wasi_ctx = WasiCtxBuilder::new()
             .inherit_stdio()
@@ -28,16 +30,17 @@ impl Controller {
         // Add any additional host functions here if needed (e.g., __sr_alloc)
     
         let mut store = Store::new(&engine, wasi_ctx);
-        let instance = pre.instantiate(&mut store).unwrap();
+        let instance = pre.instantiate(&mut store).with_context(|| "failed to construct instance")?;
         let memory = instance
             .get_memory(&mut store, "memory")
-            .expect("wasm module must export memory");
+            .with_context(|| "wasm module must export memory")?;
 
-        Self {
+        Ok(Self {
             store,
             instance,
             memory,
-        }
+            config,
+        })
     }
 
     pub fn alloc(&mut self, len: u32, align: u32) -> Result<u32> {
@@ -76,6 +79,39 @@ impl Controller {
         let (ptr,) = returns.call(&mut self.store, ())?;
         let kind = Kind::receive(ptr.into(), self)?;
         sql::Kind::from_transferrable(kind, self)
+    }
+
+    pub fn list(&mut self) -> Result<Vec<String>> {
+        // scan the exported functions and return a list of available functions
+        let mut functions = Vec::new();
+        
+        // First, collect all export names that start with __sr_fnc__
+        let function_names: Vec<String> = {
+            let exports = self.instance.exports(&mut self.store);
+            exports
+                .filter_map(|export| {
+                    let name = export.name();
+                    if name.starts_with("__sr_fnc__") {
+                        Some(name.to_string())
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        };
+        
+        // Then check each one to see if it's actually a function
+        for name in function_names {
+            if let Some(export) = self.instance.get_export(&mut self.store, &name) {
+                if let ExternType::Func(_) = export.ty(&self.store) {
+                    // strip the prefix
+                    let function_name = name.strip_prefix("__sr_fnc__").unwrap_or(&name).to_string();
+                    functions.push(function_name);
+                }
+            }
+        }
+
+        Ok(functions)
     }
 }
 

@@ -1,5 +1,5 @@
 [workspace]
-members = [ "crates/demo","crates/surrealism", "crates/surrealism-macros", "crates/surrealism-runtime", "crates/surrealism-types"]
+members = [ "crates/demo","crates/surrealism", "crates/surrealism-cli", "crates/surrealism-macros", "crates/surrealism-runtime", "crates/surrealism-types"]
 resolver = "3"
 
 [workspace.package]

@@ -1,2 +1,4 @@
-sh build.sh
-sh run.sh
+sh build-cli.sh
+sh build-demo.sh
+
+sh test.sh

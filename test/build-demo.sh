@@ -1,0 +1,1 @@
+./surrealism-cli build -o demo.surli ../crates/demo
