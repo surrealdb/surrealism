@@ -1,6 +1,10 @@
-use std::{fs::File, io::{BufReader, Read}, path::PathBuf};
-use anyhow::{Context, Result};
 use crate::config::SurrealismConfig;
+use anyhow::{Context, Result};
+use std::{
+    fs::File,
+    io::{BufReader, Read},
+    path::PathBuf,
+};
 use tar::Archive;
 use zstd::stream::read::Decoder;
 
@@ -32,7 +36,10 @@ impl SurrealismPackage {
         let mut config: Option<SurrealismConfig> = None;
 
         // Extract files in memory
-        for entry in archive.entries().with_context(|| "Failed to read archive entries")? {
+        for entry in archive
+            .entries()
+            .with_context(|| "Failed to read archive entries")?
+        {
             let mut entry = entry.with_context(|| "Failed to read archive entry")?;
             let path = entry.path().with_context(|| "Failed to get entry path")?;
 
@@ -40,18 +47,22 @@ impl SurrealismPackage {
                 path if path.ends_with("mod.wasm") => {
                     // Look for the mod.wasm file
                     let mut buffer = Vec::new();
-                    entry.read_to_end(&mut buffer)
+                    entry
+                        .read_to_end(&mut buffer)
                         .with_context(|| "Failed to read WASM file from archive")?;
                     wasm = Some(buffer);
-                },
+                }
                 path if path.ends_with("surrealism.toml") => {
                     // Look for the surrealism.toml file
                     let mut buffer = String::new();
-                    entry.read_to_string(&mut buffer)
+                    entry
+                        .read_to_string(&mut buffer)
                         .with_context(|| "Failed to read config file from archive")?;
-                    config = Some(SurrealismConfig::parse(&buffer)
-                        .with_context(|| "Failed to parse surrealism.toml")?);
-                },
+                    config = Some(
+                        SurrealismConfig::parse(&buffer)
+                            .with_context(|| "Failed to parse surrealism.toml")?,
+                    );
+                }
                 _ => {
                     // Ignore other files
                     continue;
@@ -65,12 +76,10 @@ impl SurrealismPackage {
         }
 
         let wasm = wasm.ok_or_else(|| anyhow::anyhow!("mod.wasm not found in archive"))?;
-        let config = config.ok_or_else(|| anyhow::anyhow!("surrealism.toml not found in archive"))?;
-        
-        Ok(SurrealismPackage {
-            config,
-            wasm,
-        })
+        let config =
+            config.ok_or_else(|| anyhow::anyhow!("surrealism.toml not found in archive"))?;
+
+        Ok(SurrealismPackage { config, wasm })
     }
 
     pub fn pack(&self, output: PathBuf) -> Result<()> {
@@ -81,34 +90,42 @@ impl SurrealismPackage {
 
         // Create a new tar.zst archive
         let file = File::create(&output).with_context(|| "Failed to create output file")?;
-        let encoder = zstd::stream::Encoder::new(file, 0).with_context(|| "Failed to create zstd encoder")?;
+        let encoder =
+            zstd::stream::Encoder::new(file, 0).with_context(|| "Failed to create zstd encoder")?;
         let mut archive = tar::Builder::new(encoder);
 
         // Add the WASM file
         let mut wasm_reader = std::io::Cursor::new(&self.wasm);
         let mut wasm_header = tar::Header::new_gnu();
         wasm_header.set_size(self.wasm.len() as u64);
-        archive.append_data(
-            &mut wasm_header,
-            "surrealism/mod.wasm",
-            &mut wasm_reader,
-        ).with_context(|| "Failed to add mod.wasm to archive")?;
+        archive
+            .append_data(&mut wasm_header, "surrealism/mod.wasm", &mut wasm_reader)
+            .with_context(|| "Failed to add mod.wasm to archive")?;
 
         // Add the config file
-        let config_str = self.config.to_string().with_context(|| "Failed to serialize config")?;
+        let config_str = self
+            .config
+            .to_string()
+            .with_context(|| "Failed to serialize config")?;
         let config_bytes = config_str.as_bytes();
         let mut config_reader = std::io::Cursor::new(config_bytes);
         let mut config_header = tar::Header::new_gnu();
         config_header.set_size(config_bytes.len() as u64);
-        archive.append_data(
-            &mut config_header,
-            "surrealism/surrealism.toml",
-            &mut config_reader,
-        ).with_context(|| "Failed to add surrealism.toml to archive")?;
+        archive
+            .append_data(
+                &mut config_header,
+                "surrealism/surrealism.toml",
+                &mut config_reader,
+            )
+            .with_context(|| "Failed to add surrealism.toml to archive")?;
 
         // Finish the archive
-        let encoder = archive.into_inner().with_context(|| "Failed to get encoder from archive")?;
-        encoder.finish().with_context(|| "Failed to finish zstd encoder")?;
+        let encoder = archive
+            .into_inner()
+            .with_context(|| "Failed to get encoder from archive")?;
+        encoder
+            .finish()
+            .with_context(|| "Failed to finish zstd encoder")?;
 
         Ok(())
     }

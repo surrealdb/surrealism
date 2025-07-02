@@ -1,12 +1,12 @@
+use crate::array::Array;
+use crate::controller::MemoryController;
+use crate::convert::Transferrable;
+use crate::err::Error;
 use crate::kind::KindOf;
+use crate::value::Value;
+use anyhow::Result;
 use surrealdb::sql;
 use surrealdb::sql::Kind;
-use crate::value::Value;
-use crate::array::Array;
-use crate::convert::Transferrable;
-use crate::controller::MemoryController;
-use anyhow::Result;
-use crate::err::Error;
 
 macro_rules! impl_args {
     ($($len:literal => ($($name:ident),+)),+ $(,)?) => {
@@ -34,13 +34,13 @@ macro_rules! impl_args {
                     ];
                     Ok(Value::SR_VALUE_ARRAY(Array(vals.into_transferrable(controller)?)))
                 }
-                
+
                 fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
                     if let Value::SR_VALUE_ARRAY(x) = value {
                         let mut arr = Vec::<Value>::from_transferrable(x.0, controller)?;
                         if arr.len() != $len {
                             return Err(Error::UnexpectedType(
-                                Kind::Array(Box::new(Kind::Any), Some(arr.len() as u64)), 
+                                Kind::Array(Box::new(Kind::Any), Some(arr.len() as u64)),
                                 Self::kindof()
                             ).into())
                         }

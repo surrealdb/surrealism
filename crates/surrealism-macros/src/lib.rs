@@ -1,8 +1,8 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    parse_macro_input, FnArg, ItemFn, Lit, Meta, MetaNameValue, PatType,
-    Expr, ExprLit, ReturnType, punctuated::Punctuated, token::Comma,
+    Expr, ExprLit, FnArg, ItemFn, Lit, Meta, MetaNameValue, PatType, ReturnType, parse_macro_input,
+    punctuated::Punctuated, token::Comma,
 };
 
 #[proc_macro_attribute]
@@ -16,10 +16,15 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
     for meta in args.iter() {
         match meta {
             Meta::NameValue(MetaNameValue { path, value, .. }) if path.is_ident("name") => {
-                if let Expr::Lit(ExprLit { lit: Lit::Str(s), .. }) = value {
+                if let Expr::Lit(ExprLit {
+                    lit: Lit::Str(s), ..
+                }) = value
+                {
                     let val = s.value();
                     if !val.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-                        panic!("#[surrealism(name = \"...\")] must use only ASCII letters, digits, and underscores");
+                        panic!(
+                            "#[surrealism(name = \"...\")] must use only ASCII letters, digits, and underscores"
+                        );
                     }
                     export_name_override = Some(val);
                 }
@@ -27,7 +32,9 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
             Meta::Path(path) if path.is_ident("default") => {
                 is_default = true;
             }
-            _ => panic!("Unsupported attribute: expected #[surrealism], #[surrealism(default)], or #[surrealism(name = \"...\")]"),
+            _ => panic!(
+                "Unsupported attribute: expected #[surrealism], #[surrealism(default)], or #[surrealism(name = \"...\")]"
+            ),
         }
     }
 
@@ -52,9 +59,15 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // Compose tuple type and pattern (single args are passed directly)
     let (tuple_type, tuple_pattern) = if arg_types.len() == 1 {
-        (quote! { (#(#arg_types),*,) }, quote! { (#(#arg_patterns),*,) })
+        (
+            quote! { (#(#arg_types),*,) },
+            quote! { (#(#arg_patterns),*,) },
+        )
     } else {
-        (quote! { ( #(#arg_types),*, ) }, quote! { ( #(#arg_patterns),*, ) })
+        (
+            quote! { ( #(#arg_types),*, ) },
+            quote! { ( #(#arg_patterns),*, ) },
+        )
     };
 
     // Return type

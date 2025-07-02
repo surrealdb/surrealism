@@ -1,12 +1,24 @@
-use crate::{array::TransferredArray, controller::MemoryController, convert::{Transferrable, Transfer, Transferred}, err::Error, value::Value};
 use crate::kind::KindOf;
-use surrealdb::sql;
+use crate::{
+    array::TransferredArray,
+    controller::MemoryController,
+    convert::{Transfer, Transferrable, Transferred},
+    err::Error,
+    value::Value,
+};
 use anyhow::Result;
+use surrealdb::sql;
 
 pub trait Args {
-    fn transfer_args(self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray<Value>>>;
-    fn accept_args(transferred: Transferred<TransferredArray<Value>>, controller: &mut dyn MemoryController) -> Result<Self>
-    where 
+    fn transfer_args(
+        self,
+        controller: &mut dyn MemoryController,
+    ) -> Result<Transferred<TransferredArray<Value>>>;
+    fn accept_args(
+        transferred: Transferred<TransferredArray<Value>>,
+        controller: &mut dyn MemoryController,
+    ) -> Result<Self>
+    where
         Self: Sized;
     fn kinds() -> Vec<sql::Kind>;
 }
@@ -66,14 +78,25 @@ impl_args! {
 
 // Empty impl
 impl Args for () {
-    fn transfer_args(self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray<Value>>> {
-        Ok(Vec::<Value>::new().into_transferrable(controller)?.transfer(controller)?)
+    fn transfer_args(
+        self,
+        controller: &mut dyn MemoryController,
+    ) -> Result<Transferred<TransferredArray<Value>>> {
+        Ok(Vec::<Value>::new()
+            .into_transferrable(controller)?
+            .transfer(controller)?)
     }
 
-    fn accept_args(transferred: Transferred<TransferredArray<Value>>, controller: &mut dyn MemoryController) -> Result<Self> {
-        let arr = Vec::<Value>::from_transferrable(TransferredArray::receive(transferred, controller)?, controller)?;
+    fn accept_args(
+        transferred: Transferred<TransferredArray<Value>>,
+        controller: &mut dyn MemoryController,
+    ) -> Result<Self> {
+        let arr = Vec::<Value>::from_transferrable(
+            TransferredArray::receive(transferred, controller)?,
+            controller,
+        )?;
         if !arr.is_empty() {
-            return Err(Error::InvalidArgs(0, arr.len()).into())
+            return Err(Error::InvalidArgs(0, arr.len()).into());
         }
 
         Ok(())
@@ -86,21 +109,30 @@ impl Args for () {
 
 impl<T> Args for Vec<T>
 where
-    T: Transferrable + KindOf
+    T: Transferrable + KindOf,
 {
-    fn transfer_args(self, controller: &mut dyn MemoryController) -> Result<Transferred<TransferredArray<Value>>> {
-        self
-            .into_iter()
+    fn transfer_args(
+        self,
+        controller: &mut dyn MemoryController,
+    ) -> Result<Transferred<TransferredArray<Value>>> {
+        self.into_iter()
             .map(|x| T::into_transferrable(x, controller))
             .collect::<Result<Vec<Value>>>()?
-            .into_transferrable(controller)?.transfer(controller)
+            .into_transferrable(controller)?
+            .transfer(controller)
     }
 
-    fn accept_args(transferred: Transferred<TransferredArray<Value>>, controller: &mut dyn MemoryController) -> Result<Self> {
-        Vec::<Value>::from_transferrable(TransferredArray::receive(transferred, controller)?, controller)?
-            .into_iter()
-            .map(|x| T::from_transferrable(x, controller))
-            .collect::<Result<Vec<T>>>()
+    fn accept_args(
+        transferred: Transferred<TransferredArray<Value>>,
+        controller: &mut dyn MemoryController,
+    ) -> Result<Self> {
+        Vec::<Value>::from_transferrable(
+            TransferredArray::receive(transferred, controller)?,
+            controller,
+        )?
+        .into_iter()
+        .map(|x| T::from_transferrable(x, controller))
+        .collect::<Result<Vec<T>>>()
     }
 
     // This implementation is only used to dynamically transfer arguments, not to annotate them

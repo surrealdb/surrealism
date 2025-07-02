@@ -1,8 +1,8 @@
-use std::path::PathBuf;
+use crate::commands::SurrealismCommand;
 use anyhow::{Context, Result};
+use std::path::PathBuf;
 use surrealdb::sql::Value;
 use surrealism_runtime::package::SurrealismPackage;
-use crate::commands::SurrealismCommand;
 
 pub struct RunCommand {
     pub file: PathBuf,
@@ -19,7 +19,8 @@ impl SurrealismCommand for RunCommand {
             .with_context(|| "Failed to load WASM module")?;
 
         // Invoke the function with the provided arguments
-        let result = controller.invoke(self.fnc, self.args)
+        let result = controller
+            .invoke(self.fnc, self.args)
             .with_context(|| "Failed to invoke function")?;
 
         // Print the result with pretty display formatting
@@ -28,4 +29,3 @@ impl SurrealismCommand for RunCommand {
         Ok(())
     }
 }
-

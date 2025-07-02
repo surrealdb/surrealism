@@ -1,7 +1,7 @@
-use std::path::PathBuf;
-use anyhow::Context;
-use surrealism_runtime::package::SurrealismPackage;
 use crate::commands::SurrealismCommand;
+use anyhow::Context;
+use std::path::PathBuf;
+use surrealism_runtime::package::SurrealismPackage;
 
 pub struct SigCommand {
     pub file: PathBuf,
@@ -18,16 +18,23 @@ impl SurrealismCommand for SigCommand {
             .with_context(|| "Failed to load WASM module")?;
 
         // Invoke the function with the provided arguments
-        let args = controller.args(self.fnc.clone()).with_context(|| "Failed to collect arguments")?;
-        let returns = controller.returns(self.fnc.clone()).with_context(|| "Failed to collect return type")?;
+        let args = controller
+            .args(self.fnc.clone())
+            .with_context(|| "Failed to collect arguments")?;
+        let returns = controller
+            .returns(self.fnc.clone())
+            .with_context(|| "Failed to collect return type")?;
 
-        println!("\nSignature:\n - {}({}) -> {}", 
+        println!(
+            "\nSignature:\n - {}({}) -> {}",
             self.fnc.as_deref().unwrap_or("<default>"),
-            args.iter().map(|arg| format!("{}", arg)).collect::<Vec<_>>().join(", "),
+            args.iter()
+                .map(|arg| format!("{}", arg))
+                .collect::<Vec<_>>()
+                .join(", "),
             returns
         );
 
         Ok(())
     }
 }
-

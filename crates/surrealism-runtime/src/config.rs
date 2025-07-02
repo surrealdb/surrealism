@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
 use semver::Version;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SurrealismConfig {
@@ -25,6 +25,9 @@ impl SurrealismConfig {
     }
 
     pub fn file_name(&self) -> String {
-        format!("{}-{}-{}.surli", self.meta.organisation, self.meta.name, self.meta.version)
+        format!(
+            "{}-{}-{}.surli",
+            self.meta.organisation, self.meta.name, self.meta.version
+        )
     }
 }

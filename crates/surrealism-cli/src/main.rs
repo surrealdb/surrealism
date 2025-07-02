@@ -1,10 +1,12 @@
 mod commands;
 
 use clap::{Parser, Subcommand};
-use surrealdb::sql::Value;
 use std::path::PathBuf;
+use surrealdb::sql::Value;
 
-use crate::commands::{build::BuildCommand, info::InfoCommand, run::RunCommand, sig::SigCommand, SurrealismCommand};
+use crate::commands::{
+    SurrealismCommand, build::BuildCommand, info::InfoCommand, run::RunCommand, sig::SigCommand,
+};
 
 /// CLI definition
 #[derive(Debug, Parser)]
@@ -57,7 +59,7 @@ enum Commands {
         /// Path to source directory (defaults to current directory)
         #[arg(value_name = "SOURCE_PATH")]
         path: Option<PathBuf>,
-    }
+    },
 }
 
 /// Custom parser for `surrealdb::sql::Value`
@@ -70,11 +72,7 @@ fn main() {
 
     match cli.command {
         Commands::Run { args, fnc, file } => {
-            let run_command = RunCommand {
-                file,
-                fnc,
-                args,
-            };
+            let run_command = RunCommand { file, fnc, args };
 
             if let Err(e) = run_command.run() {
                 eprintln!("Error: {e}");
@@ -82,10 +80,7 @@ fn main() {
             }
         }
         Commands::Sig { fnc, file } => {
-            let run_command = SigCommand {
-                file,
-                fnc,
-            };
+            let run_command = SigCommand { file, fnc };
 
             if let Err(e) = run_command.run() {
                 eprintln!("Error: {e}");
@@ -100,10 +95,7 @@ fn main() {
             }
         }
         Commands::Build { out, path } => {
-            let build_command = BuildCommand {
-                path,
-                out,
-            };
+            let build_command = BuildCommand { path, out };
             if let Err(e) = build_command.run() {
                 eprintln!("Error: {e}");
                 std::process::exit(1);

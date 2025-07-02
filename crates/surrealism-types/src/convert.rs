@@ -1,9 +1,17 @@
-use std::marker::PhantomData;
+use super::{
+    array::Array,
+    bytes::Bytes,
+    datetime::Datetime,
+    duration::Duration,
+    thing::Thing,
+    uuid::Uuid,
+    value::{Number, Object, Value},
+};
 use crate::{controller::MemoryController, err::Error};
-use super::{array::Array, bytes::Bytes, datetime::Datetime, duration::Duration, thing::Thing, uuid::Uuid, value::{Number, Object, Value}};
+use anyhow::Result;
+use std::marker::PhantomData;
 use surrealdb::sql;
 use surrealdb::sql::Kind;
-use anyhow::Result;
 
 pub trait Transfer {
     /// Transfers the value into WASM memory, returns a `Transferred` handle
@@ -12,7 +20,10 @@ pub trait Transfer {
         Self: Sized;
 
     /// Default implementation of `accept`, does nothing unless overridden
-    fn receive(transferred: Transferred<Self>, controller: &mut dyn MemoryController) -> Result<Self>
+    fn receive(
+        transferred: Transferred<Self>,
+        controller: &mut dyn MemoryController,
+    ) -> Result<Self>
     where
         Self: Sized;
 }
@@ -20,7 +31,7 @@ pub trait Transfer {
 impl<T: Clone> Transfer for T {
     fn transfer(self, controller: &mut dyn MemoryController) -> Result<Transferred<T>> {
         let len = std::mem::size_of::<T>() as u32;
-		let align = std::mem::align_of::<T>() as u32;
+        let align = std::mem::align_of::<T>() as u32;
         let ptr = controller.alloc(len, align)?;
         let memory = controller.mut_mem(ptr, len);
 
@@ -36,8 +47,8 @@ impl<T: Clone> Transfer for T {
     }
 
     fn receive(transferred: Transferred<T>, controller: &mut dyn MemoryController) -> Result<Self> {
-		let ptr = transferred.ptr();
-		let len = transferred.len();
+        let ptr = transferred.ptr();
+        let len = transferred.len();
         let memory = controller.mut_mem(ptr, len);
 
         let val = unsafe {
@@ -56,29 +67,29 @@ impl<T: Clone> Transfer for T {
 pub struct Transferred<T>(u32, PhantomData<T>);
 
 impl<T> Transferred<T> {
-	pub fn from_ptr(ptr: u32) -> Self {
-		Self(ptr, Default::default())
-	}
+    pub fn from_ptr(ptr: u32) -> Self {
+        Self(ptr, Default::default())
+    }
 
-	pub fn ptr(&self) -> u32 {
-		self.0
-	}
+    pub fn ptr(&self) -> u32 {
+        self.0
+    }
 
-	pub fn len(&self) -> u32 {
-		std::mem::size_of::<T>() as u32
-	}
+    pub fn len(&self) -> u32 {
+        std::mem::size_of::<T>() as u32
+    }
 }
 
 impl<T> From<Transferred<T>> for u32 {
-	fn from(value: Transferred<T>) -> Self {
-		value.0
-	}
+    fn from(value: Transferred<T>) -> Self {
+        value.0
+    }
 }
 
 impl<T> From<u32> for Transferred<T> {
-	fn from(ptr: u32) -> Self {
-		Transferred::from_ptr(ptr)
-	}
+    fn from(ptr: u32) -> Self {
+        Transferred::from_ptr(ptr)
+    }
 }
 
 //////////////////////////
@@ -87,296 +98,303 @@ impl<T> From<u32> for Transferred<T> {
 
 pub trait Transferrable<T = Value> {
     fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<T>;
-	fn from_transferrable(value: T, controller: &mut dyn MemoryController) -> Result<Self>
-    where Self: Sized;
+    fn from_transferrable(value: T, controller: &mut dyn MemoryController) -> Result<Self>
+    where
+        Self: Sized;
 }
 
 impl Transferrable for Value {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(self)
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(self)
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		Ok(value)
-	}
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        Ok(value)
+    }
 }
 
 impl Transferrable for bool {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_BOOL(self))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_BOOL(self))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_BOOL(x) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_BOOL(x) = value {
             Ok(x)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Bool).into())
         }
-	}
+    }
 }
 
 impl Transferrable for i64 {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_NUMBER(Number::SR_NUMBER_INT(self)))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_NUMBER(Number::SR_NUMBER_INT(self)))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_NUMBER(Number::SR_NUMBER_INT(x)) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_NUMBER(Number::SR_NUMBER_INT(x)) = value {
             Ok(x)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Int).into())
         }
-	}
+    }
 }
 
 impl Transferrable for f64 {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_NUMBER(Number::SR_NUMBER_FLOAT(self)))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_NUMBER(Number::SR_NUMBER_FLOAT(self)))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_NUMBER(Number::SR_NUMBER_FLOAT(x)) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_NUMBER(Number::SR_NUMBER_FLOAT(x)) = value {
             Ok(x)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Float).into())
         }
-	}
+    }
 }
 
 impl Transferrable for Number {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_NUMBER(self))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_NUMBER(self))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_NUMBER(x) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_NUMBER(x) = value {
             Ok(x)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Number).into())
         }
-	}
+    }
 }
 
 impl Transferrable for sql::Number {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_NUMBER(self.into()))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_NUMBER(self.into()))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_NUMBER(x) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_NUMBER(x) = value {
             Ok(x.into())
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Number).into())
         }
-	}
+    }
 }
 
 impl Transferrable for String {
-	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_STRAND(self.into_transferrable(controller)?))
-	}
+    fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_STRAND(self.into_transferrable(controller)?))
+    }
 
-	fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_STRAND(x) = value {
+    fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_STRAND(x) = value {
             Ok(String::from_transferrable(x, controller)?)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::String).into())
         }
-	}
+    }
 }
 
 impl Transferrable for Duration {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_DURATION(self))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_DURATION(self))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_DURATION(x) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_DURATION(x) = value {
             Ok(x)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Duration).into())
         }
-	}
+    }
 }
 
 impl Transferrable for sql::Duration {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_DURATION(self.into()))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_DURATION(self.into()))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_DURATION(x) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_DURATION(x) = value {
             Ok(x.into())
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Duration).into())
         }
-	}
+    }
 }
 
 impl Transferrable for Datetime {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_DATETIME(self))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_DATETIME(self))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_DATETIME(x) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_DATETIME(x) = value {
             Ok(x)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Datetime).into())
         }
-	}
+    }
 }
 
 impl Transferrable for sql::Datetime {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_DATETIME(self.into()))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_DATETIME(self.into()))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_DATETIME(x) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_DATETIME(x) = value {
             Ok(x.try_into()?)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Datetime).into())
         }
-	}
+    }
 }
 
 impl Transferrable for Uuid {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_UUID(self))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_UUID(self))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_UUID(x) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_UUID(x) = value {
             Ok(x)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Uuid).into())
         }
-	}
+    }
 }
 
 impl Transferrable for sql::Uuid {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_UUID(self.into()))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_UUID(self.into()))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_UUID(x) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_UUID(x) = value {
             Ok(x.into())
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Uuid).into())
         }
-	}
+    }
 }
 
 impl Transferrable for Array {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_ARRAY(self))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_ARRAY(self))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_ARRAY(x) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_ARRAY(x) = value {
             Ok(x)
         } else {
-            Err(Error::UnexpectedType(value.kindof(), Kind::Array(Box::new(Kind::Any), None)).into())
+            Err(
+                Error::UnexpectedType(value.kindof(), Kind::Array(Box::new(Kind::Any), None))
+                    .into(),
+            )
         }
-	}
+    }
 }
 
 impl Transferrable for sql::Array {
-	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_ARRAY(self.into_transferrable(controller)?))
-	}
+    fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_ARRAY(self.into_transferrable(controller)?))
+    }
 
-	fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_ARRAY(x) = value {
+    fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_ARRAY(x) = value {
             Ok(sql::Array::from_transferrable(x, controller)?)
         } else {
-            Err(Error::UnexpectedType(value.kindof(), Kind::Array(Box::new(Kind::Any), None)).into())
+            Err(
+                Error::UnexpectedType(value.kindof(), Kind::Array(Box::new(Kind::Any), None))
+                    .into(),
+            )
         }
-	}
+    }
 }
 
 impl Transferrable for Object {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_OBJECT(self))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_OBJECT(self))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_OBJECT(x) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_OBJECT(x) = value {
             Ok(x)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Object).into())
         }
-	}
+    }
 }
 
 impl Transferrable for sql::Object {
-	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_OBJECT(self.into_transferrable(controller)?))
-	}
+    fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_OBJECT(self.into_transferrable(controller)?))
+    }
 
-	fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_OBJECT(x) = value {
+    fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_OBJECT(x) = value {
             Ok(sql::Object::from_transferrable(x, controller)?)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Object).into())
         }
-	}
+    }
 }
 
 impl Transferrable for Bytes {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_BYTES(self))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_BYTES(self))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_BYTES(x) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_BYTES(x) = value {
             Ok(x)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Bytes).into())
         }
-	}
+    }
 }
 
 impl Transferrable for sql::Bytes {
-	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_BYTES(self.into_transferrable(controller)?))
-	}
+    fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_BYTES(self.into_transferrable(controller)?))
+    }
 
-	fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_BYTES(x) = value {
+    fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_BYTES(x) = value {
             Ok(sql::Bytes::from_transferrable(x, controller)?)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Bytes).into())
         }
-	}
+    }
 }
 
 impl Transferrable for Thing {
-	fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_THING(self))
-	}
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_THING(self))
+    }
 
-	fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_THING(x) = value {
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_THING(x) = value {
             Ok(x)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Record(vec![])).into())
         }
-	}
+    }
 }
 
 impl Transferrable for sql::Thing {
-	fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
-		Ok(Value::SR_VALUE_THING(self.into_transferrable(controller)?))
-	}
+    fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_THING(self.into_transferrable(controller)?))
+    }
 
-	fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
-		if let Value::SR_VALUE_THING(x) = value {
+    fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_THING(x) = value {
             Ok(sql::Thing::from_transferrable(x, controller)?)
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Record(vec![])).into())
         }
-	}
+    }
 }

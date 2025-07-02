@@ -1,8 +1,8 @@
-use std::path::PathBuf;
-use anyhow::{Context, Result};
-use surrealism_runtime::package::SurrealismPackage;
 use crate::commands::SurrealismCommand;
+use anyhow::{Context, Result};
+use std::path::PathBuf;
 use surrealdb::sql::Kind;
+use surrealism_runtime::package::SurrealismPackage;
 
 pub struct InfoCommand {
     pub file: PathBuf,
@@ -18,23 +18,26 @@ impl SurrealismCommand for InfoCommand {
         let mut controller = surrealism_runtime::controller::Controller::from_package(package)
             .with_context(|| "Failed to load WASM module")?;
 
-        let exports = controller.list()
+        let exports = controller
+            .list()
             .with_context(|| "Failed to list functions in the WASM module")?
             .into_iter()
             .map(|name| {
-                let args = controller.args(Some(name.clone()))
-                    .with_context(|| format!("Failed to collect arguments for function '{name}'"))?;
-                let returns = controller.returns(Some(name.clone()))
-                    .with_context(|| format!("Failed to collect return type for function '{name}'"))?;
+                let args = controller.args(Some(name.clone())).with_context(|| {
+                    format!("Failed to collect arguments for function '{name}'")
+                })?;
+                let returns = controller.returns(Some(name.clone())).with_context(|| {
+                    format!("Failed to collect return type for function '{name}'")
+                })?;
 
                 Ok((name, args, returns))
             })
             .collect::<Result<Vec<(String, Vec<Kind>, Kind)>>>()?;
 
         let title = format!(
-            "Info for @{}/{}@{}", 
-            meta.organisation, 
-            meta.name, 
+            "Info for @{}/{}@{}",
+            meta.organisation,
+            meta.name,
             meta.version.to_string(),
         );
         println!("\n{}", title);
@@ -47,8 +50,12 @@ impl SurrealismCommand for InfoCommand {
                 format!("<mod>::{name}")
             };
 
-            println!("- {name}({}) -> {}", 
-                args.iter().map(|arg| format!("{}", arg)).collect::<Vec<_>>().join(", "),
+            println!(
+                "- {name}({}) -> {}",
+                args.iter()
+                    .map(|arg| format!("{}", arg))
+                    .collect::<Vec<_>>()
+                    .join(", "),
                 returns
             );
         }
@@ -56,4 +63,3 @@ impl SurrealismCommand for InfoCommand {
         Ok(())
     }
 }
-

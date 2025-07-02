@@ -3,9 +3,7 @@ use surrealism_types::controller::MemoryController;
 
 use crate::memory::{__sr_alloc, __sr_free};
 
-pub struct Controller {
-
-}
+pub struct Controller {}
 
 impl MemoryController for Controller {
     fn alloc(&mut self, len: u32, align: u32) -> Result<u32> {
