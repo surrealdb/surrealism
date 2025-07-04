@@ -20,6 +20,10 @@ pub struct Controller {
     pub config: SurrealismConfig,
 }
 
+// HostInterface {
+
+// }
+
 impl Controller {
     pub fn from_package(SurrealismPackage { wasm, config }: SurrealismPackage) -> Result<Self> {
         let engine = Engine::default();

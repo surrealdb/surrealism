@@ -7,7 +7,7 @@ use super::{
     uuid::Uuid,
     value::{Number, Object, Value},
 };
-use crate::{controller::MemoryController, err::Error};
+use crate::{array::TransferredArray, controller::MemoryController, err::Error, kind::KindOf};
 use anyhow::Result;
 use std::marker::PhantomData;
 use surrealdb::sql;
@@ -100,6 +100,29 @@ pub trait Transferrable<T = Value> {
     fn from_transferrable(value: T, controller: &mut dyn MemoryController) -> Result<Self>
     where
         Self: Sized;
+}
+
+impl<T: Clone + Transferrable<Value> + KindOf> Transferrable for Vec<T> {
+    fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_ARRAY(Array(
+            self
+                .into_iter()
+                .map(|x| x.into_transferrable(controller))
+                .collect::<Result<Vec<Value>>>()?
+                .into_transferrable(controller)?
+        )))
+    }
+
+    fn from_transferrable(value: Value, controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_ARRAY(Array(x)) = value {
+            Vec::<Value>::from_transferrable(x, controller)?
+                .into_iter()
+                .map(|x| T::from_transferrable(x, controller))
+                .collect::<Result<Vec<T>>>()
+        } else {
+            Err(Error::UnexpectedType(value.kindof(), Kind::Array(Box::new(T::kindof()), None)).into())
+        }
+    }
 }
 
 impl Transferrable for Value {
