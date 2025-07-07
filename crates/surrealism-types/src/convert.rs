@@ -7,7 +7,7 @@ use super::{
     uuid::Uuid,
     value::{Number, Object, Value},
 };
-use crate::{array::TransferredArray, controller::MemoryController, err::Error, kind::KindOf};
+use crate::{controller::MemoryController, err::Error, kind::KindOf};
 use anyhow::Result;
 use std::marker::PhantomData;
 use surrealdb::sql;
@@ -105,11 +105,10 @@ pub trait Transferrable<T = Value> {
 impl<T: Clone + Transferrable<Value> + KindOf> Transferrable for Vec<T> {
     fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
         Ok(Value::SR_VALUE_ARRAY(Array(
-            self
-                .into_iter()
+            self.into_iter()
                 .map(|x| x.into_transferrable(controller))
                 .collect::<Result<Vec<Value>>>()?
-                .into_transferrable(controller)?
+                .into_transferrable(controller)?,
         )))
     }
 
@@ -120,7 +119,10 @@ impl<T: Clone + Transferrable<Value> + KindOf> Transferrable for Vec<T> {
                 .map(|x| T::from_transferrable(x, controller))
                 .collect::<Result<Vec<T>>>()
         } else {
-            Err(Error::UnexpectedType(value.kindof(), Kind::Array(Box::new(T::kindof()), None)).into())
+            Err(
+                Error::UnexpectedType(value.kindof(), Kind::Array(Box::new(T::kindof()), None))
+                    .into(),
+            )
         }
     }
 }

@@ -1,8 +1,9 @@
-use crate::commands::SurrealismCommand;
-use anyhow::{Context, Result};
+use crate::{commands::SurrealismCommand, host::DemoHost};
+use anyhow::Result;
 use std::path::PathBuf;
 use surrealdb::sql::Value;
 use surrealism_runtime::package::SurrealismPackage;
+use surrealism_types::err::PrefixError;
 
 pub struct RunCommand {
     pub file: PathBuf,
@@ -15,13 +16,14 @@ impl SurrealismCommand for RunCommand {
         let package = SurrealismPackage::from_file(self.file)?;
 
         // Load the WASM module
-        let mut controller = surrealism_runtime::controller::Controller::from_package(package)
-            .with_context(|| "Failed to load WASM module")?;
+        let host = DemoHost::boxed();
+        let mut controller = surrealism_runtime::controller::Controller::new(package, host)
+            .prefix_err(|| "Failed to load WASM module")?;
 
         // Invoke the function with the provided arguments
         let result = controller
             .invoke(self.fnc, self.args)
-            .with_context(|| "Failed to invoke function")?;
+            .prefix_err(|| "Failed to invoke function")?;
 
         // Print the result with pretty display formatting
         println!("{result:#}");

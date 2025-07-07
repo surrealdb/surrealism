@@ -16,6 +16,11 @@ fn can_drive(age: i64) -> bool {
 
 #[surrealism]
 fn create_user((name, age): (String, i64), enabled: bool) -> String {
+    let exists: bool =
+        surrealism::run("fn::user_exists".to_string(), None, (name.clone(), age)).unwrap();
+    if exists {
+        return format!("User {name} already exists");
+    }
     format!("Created user {name} of age {age}. Enabled? {enabled}")
 }
 
@@ -42,12 +47,12 @@ fn js_support_agent_sentiment(question: String) -> i64 {
     surrealism::ml::invoke_model(model, tokenized, 100).unwrap()
 }
 
-
-
 // generate a response to a question
 #[surrealism]
 fn js_support_agent_response(question: String) -> String {
-    let prompt = format!("<system>You're a support agent whos an expert in javascript, give a good response to the user so that they dont churn in our product.</system><user>{question}</user>");
+    let prompt = format!(
+        "<system>You're a support agent whos an expert in javascript, give a good response to the user so that they dont churn in our product.</system><user>{question}</user>"
+    );
     let model = "mistral-7b-instruct-v0.1".to_string();
     surrealism::ml::invoke_model(model, prompt, 100).unwrap()
 }

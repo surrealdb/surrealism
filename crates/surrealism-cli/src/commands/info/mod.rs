@@ -1,8 +1,9 @@
-use crate::commands::SurrealismCommand;
-use anyhow::{Context, Result};
+use crate::{commands::SurrealismCommand, host::DemoHost};
+use anyhow::Result;
 use std::path::PathBuf;
 use surrealdb::sql::Kind;
 use surrealism_runtime::package::SurrealismPackage;
+use surrealism_types::err::PrefixError;
 
 pub struct InfoCommand {
     pub file: PathBuf,
@@ -11,22 +12,23 @@ pub struct InfoCommand {
 impl SurrealismCommand for InfoCommand {
     fn run(self) -> anyhow::Result<()> {
         let package = SurrealismPackage::from_file(self.file)
-            .with_context(|| "Failed to load Surrealism package")?;
+            .prefix_err(|| "Failed to load Surrealism package")?;
         let meta = package.config.meta.clone();
 
         // Load the WASM module from memory
-        let mut controller = surrealism_runtime::controller::Controller::from_package(package)
-            .with_context(|| "Failed to load WASM module")?;
+        let host = DemoHost::boxed();
+        let mut controller = surrealism_runtime::controller::Controller::new(package, host)
+            .prefix_err(|| "Failed to load WASM module")?;
 
         let exports = controller
             .list()
-            .with_context(|| "Failed to list functions in the WASM module")?
+            .prefix_err(|| "Failed to list functions in the WASM module")?
             .into_iter()
             .map(|name| {
-                let args = controller.args(Some(name.clone())).with_context(|| {
-                    format!("Failed to collect arguments for function '{name}'")
-                })?;
-                let returns = controller.returns(Some(name.clone())).with_context(|| {
+                let args = controller
+                    .args(Some(name.clone()))
+                    .prefix_err(|| format!("Failed to collect arguments for function '{name}'"))?;
+                let returns = controller.returns(Some(name.clone())).prefix_err(|| {
                     format!("Failed to collect return type for function '{name}'")
                 })?;
 

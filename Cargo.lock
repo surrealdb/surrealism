@@ -4034,6 +4034,7 @@ dependencies = [
  "serde_json",
  "surrealdb",
  "surrealism-runtime",
+ "surrealism-types",
  "tar",
  "tempfile",
  "walrus",

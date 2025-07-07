@@ -2,9 +2,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use surrealism_runtime::config::SurrealismConfig;
 use surrealism_runtime::package::SurrealismPackage;
+use surrealism_types::err::PrefixError;
 use tempfile::TempDir;
 use walrus::Module;
 use wasm_opt::OptimizationOptions;
@@ -34,7 +35,7 @@ impl SurrealismCommand for BuildCommand {
         let out = resolve_output_path(self.out, &package.config)?;
         package
             .pack(out)
-            .with_context(|| "Failed to pack Surrealism package")?;
+            .prefix_err(|| "Failed to pack Surrealism package")?;
 
         Ok(())
     }
@@ -47,7 +48,7 @@ fn load_config(path: &Path) -> Result<SurrealismConfig> {
     }
 
     SurrealismConfig::parse(
-        &fs::read_to_string(&surrealism_toml).with_context(|| "Failed to read surrealism.toml")?,
+        &fs::read_to_string(&surrealism_toml).prefix_err(|| "Failed to read surrealism.toml")?,
     )
 }
 
@@ -57,7 +58,7 @@ fn build_wasm_module(path: &PathBuf) -> Result<()> {
         .args(["build", "--target", "wasm32-wasip1", "--release"])
         .current_dir(path)
         .status()
-        .with_context(|| "Failed to execute cargo build")?;
+        .prefix_err(|| "Failed to execute cargo build")?;
 
     if !cargo_status.success() {
         anyhow::bail!("Cargo build failed");
@@ -74,7 +75,7 @@ fn optimize_wasm(source_wasm: &PathBuf) -> Result<Vec<u8>> {
     println!("Optimizing bundle...");
 
     // Read and strip WASM
-    let wasm_bytes = fs::read(source_wasm).with_context(|| "Failed to read WASM file")?;
+    let wasm_bytes = fs::read(source_wasm).prefix_err(|| "Failed to read WASM file")?;
     let stripped_bytes = strip_wasm_sections(&wasm_bytes)?;
 
     // Apply wasm-opt optimization
@@ -85,7 +86,7 @@ fn optimize_wasm(source_wasm: &PathBuf) -> Result<Vec<u8>> {
 
 fn strip_wasm_sections(wasm_bytes: &[u8]) -> Result<Vec<u8>> {
     let mut module =
-        Module::from_buffer(wasm_bytes).with_context(|| "Failed to parse WASM module")?;
+        Module::from_buffer(wasm_bytes).prefix_err(|| "Failed to parse WASM module")?;
 
     // Strip debug information and other unnecessary sections
     let mut sections_to_remove = Vec::new();
@@ -122,21 +123,20 @@ fn apply_wasm_opt(wasm_bytes: &[u8]) -> Result<Vec<u8>> {
     opts.debug_info(false);
 
     // Create a temporary directory for wasm-opt files
-    let temp_dir = TempDir::new().with_context(|| "Failed to create temporary directory")?;
+    let temp_dir = TempDir::new().prefix_err(|| "Failed to create temporary directory")?;
     let temp_wasm_input = temp_dir.path().join("input.wasm");
     let temp_wasm_output = temp_dir.path().join("output.wasm");
 
-    fs::write(&temp_wasm_input, wasm_bytes)
-        .with_context(|| "Failed to write temporary WASM file")?;
+    fs::write(&temp_wasm_input, wasm_bytes).prefix_err(|| "Failed to write temporary WASM file")?;
 
     opts.run(&temp_wasm_input, &temp_wasm_output)
-        .with_context(|| "Failed to optimize WASM with wasm-opt")?;
+        .prefix_err(|| "Failed to optimize WASM with wasm-opt")?;
 
-    fs::read(&temp_wasm_output).with_context(|| "Failed to read optimized WASM file")
+    fs::read(&temp_wasm_output).prefix_err(|| "Failed to read optimized WASM file")
 }
 
 fn get_source_wasm(path: &PathBuf) -> Result<PathBuf> {
-    let metadata = metadata(path).with_context(|| "Failed to retrieve cargo metadata")?;
+    let metadata = metadata(path).prefix_err(|| "Failed to retrieve cargo metadata")?;
 
     let target_directory = metadata["target_directory"]
         .as_str()
@@ -185,16 +185,16 @@ fn metadata(path: &PathBuf) -> Result<serde_json::Value> {
         .args(["metadata", "--format-version", "1", "--no-deps"])
         .current_dir(path)
         .output()
-        .with_context(|| "Failed to execute cargo metadata")?;
+        .prefix_err(|| "Failed to execute cargo metadata")?;
 
     if !output.status.success() {
         anyhow::bail!("Failed to get cargo metadata");
     }
 
-    let metadata_str = String::from_utf8(output.stdout)
-        .with_context(|| "Invalid UTF-8 in cargo metadata output")?;
+    let metadata_str =
+        String::from_utf8(output.stdout).prefix_err(|| "Invalid UTF-8 in cargo metadata output")?;
 
-    serde_json::from_str(&metadata_str).with_context(|| "Failed to parse cargo metadata JSON")
+    serde_json::from_str(&metadata_str).prefix_err(|| "Failed to parse cargo metadata JSON")
 }
 
 fn resolve_output_path(out: Option<PathBuf>, config: &SurrealismConfig) -> Result<PathBuf> {

@@ -1,7 +1,7 @@
-use crate::commands::SurrealismCommand;
-use anyhow::Context;
+use crate::{commands::SurrealismCommand, host::DemoHost};
 use std::path::PathBuf;
 use surrealism_runtime::package::SurrealismPackage;
+use surrealism_types::err::PrefixError;
 
 pub struct SigCommand {
     pub file: PathBuf,
@@ -11,19 +11,20 @@ pub struct SigCommand {
 impl SurrealismCommand for SigCommand {
     fn run(self) -> anyhow::Result<()> {
         let package = SurrealismPackage::from_file(self.file)
-            .with_context(|| "Failed to load Surrealism package")?;
+            .prefix_err(|| "Failed to load Surrealism package")?;
 
         // Load the WASM module from memory
-        let mut controller = surrealism_runtime::controller::Controller::from_package(package)
-            .with_context(|| "Failed to load WASM module")?;
+        let host = DemoHost::boxed();
+        let mut controller = surrealism_runtime::controller::Controller::new(package, host)
+            .prefix_err(|| "Failed to load WASM module")?;
 
         // Invoke the function with the provided arguments
         let args = controller
             .args(self.fnc.clone())
-            .with_context(|| "Failed to collect arguments")?;
+            .prefix_err(|| "Failed to collect arguments")?;
         let returns = controller
             .returns(self.fnc.clone())
-            .with_context(|| "Failed to collect return type")?;
+            .prefix_err(|| "Failed to collect return type")?;
 
         println!(
             "\nSignature:\n - {}({}) -> {}",

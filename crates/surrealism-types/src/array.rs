@@ -29,6 +29,10 @@ impl<T: Clone> Transferrable<TransferredArray<T>> for Vec<T> {
         controller: &mut dyn MemoryController,
     ) -> Result<TransferredArray<T>> {
         let len = self.len();
+        if len == 0 {
+            return Ok(TransferredArray::from_ptr_len(0, 0));
+        }
+
         let byte_len = (len * std::mem::size_of::<T>()) as u32;
         let align = std::mem::align_of::<T>() as u32;
         let wasm_ptr = controller.alloc(byte_len, align)?;
@@ -49,6 +53,10 @@ impl<T: Clone> Transferrable<TransferredArray<T>> for Vec<T> {
         value: TransferredArray<T>,
         controller: &mut dyn MemoryController,
     ) -> Result<Self> {
+        if value.len == 0 {
+            return Ok(Vec::new());
+        }
+
         let ptr = value.ptr as usize;
         let len = value.len as usize;
         let byte_len = len * std::mem::size_of::<T>();

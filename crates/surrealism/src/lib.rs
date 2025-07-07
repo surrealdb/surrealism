@@ -1,10 +1,10 @@
 pub mod controller;
 pub mod err;
+pub mod imports;
 pub mod memory;
 pub mod registry;
-pub mod imports;
 pub use controller::Controller;
+pub use imports::{ml, run, sql};
 pub use registry::SurrealismFunction;
 pub use surrealism_macros::surrealism;
 pub use surrealism_types as types;
-pub use imports::{run, sql, ml};

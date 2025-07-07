@@ -1,6 +1,7 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use semver::Version;
 use serde::{Deserialize, Serialize};
+use surrealism_types::err::PrefixError;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SurrealismConfig {
@@ -17,11 +18,11 @@ pub struct SurrealismMeta {
 
 impl SurrealismConfig {
     pub fn parse(s: &str) -> Result<Self> {
-        toml::from_str(s).with_context(|| "Failed to parse Surrealism config")
+        toml::from_str(s).prefix_err(|| "Failed to parse Surrealism config")
     }
 
     pub fn to_string(&self) -> Result<String> {
-        toml::to_string(self).with_context(|| "Failed to serialize Surrealism config")
+        toml::to_string(self).prefix_err(|| "Failed to serialize Surrealism config")
     }
 
     pub fn file_name(&self) -> String {

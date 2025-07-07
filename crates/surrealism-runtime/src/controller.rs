@@ -1,11 +1,16 @@
-use crate::{config::SurrealismConfig, package::SurrealismPackage};
-use anyhow::{Context, Result};
+use crate::{
+    config::SurrealismConfig,
+    host::{Host, implement_host_functions},
+    package::SurrealismPackage,
+};
+use anyhow::Result;
 use surrealdb::sql;
 use surrealism_types::{
     args::Args,
     array::TransferredArray,
     controller::MemoryController,
     convert::{Transfer, Transferrable},
+    err::PrefixError,
     kind::Kind,
     value::Value,
 };
@@ -13,43 +18,54 @@ use wasmtime::*;
 use wasmtime_wasi::p2::WasiCtxBuilder;
 use wasmtime_wasi::preview1::{self, WasiP1Ctx};
 
+pub struct StoreData {
+    pub wasi: WasiP1Ctx,
+    pub host: Box<dyn Host>,
+}
+
 pub struct Controller {
-    pub store: Store<WasiP1Ctx>,
+    pub store: Store<StoreData>,
     pub instance: Instance,
     pub memory: Memory,
     pub config: SurrealismConfig,
 }
 
-// HostInterface {
-
-// }
-
 impl Controller {
-    pub fn from_package(SurrealismPackage { wasm, config }: SurrealismPackage) -> Result<Self> {
+    pub fn new(
+        SurrealismPackage { wasm, config }: SurrealismPackage,
+        host: Box<dyn Host>,
+    ) -> Result<Self> {
         let engine = Engine::default();
-        let module = Module::new(&engine, wasm).with_context(|| "Failed to construct module")?;
+        let module =
+            Module::new(&engine, wasm).prefix_err(|| "Failed to construct module from bytes")?;
 
-        let mut linker: Linker<WasiP1Ctx> = Linker::new(&engine);
-        preview1::add_to_linker_sync(&mut linker, |t| t)
-            .with_context(|| "failed to construct linker")?;
-        let pre: InstancePre<WasiP1Ctx> = linker
+        let mut linker: Linker<StoreData> = Linker::new(&engine);
+        preview1::add_to_linker_sync(&mut linker, |data| &mut data.wasi)
+            .prefix_err(|| "failed to add WASI to linker")?;
+
+        implement_host_functions(&mut linker)
+            .prefix_err(|| "failed to implement host functions")?;
+
+        let pre: InstancePre<StoreData> = linker
             .instantiate_pre(&module)
-            .with_context(|| "failed to construct instancepre")?;
+            .prefix_err(|| "failed to create instance pre")?;
 
         let wasi_ctx = WasiCtxBuilder::new()
             .inherit_stdio()
             .inherit_env()
             .build_p1();
 
-        // Add any additional host functions here if needed (e.g., __sr_alloc)
-
-        let mut store = Store::new(&engine, wasi_ctx);
+        let store_data = StoreData {
+            wasi: wasi_ctx,
+            host,
+        };
+        let mut store = Store::new(&engine, store_data);
         let instance = pre
             .instantiate(&mut store)
-            .with_context(|| "failed to construct instance")?;
+            .prefix_err(|| "failed to instantiate WASM module")?;
         let memory = instance
             .get_memory(&mut store, "memory")
-            .with_context(|| "wasm module must export memory")?;
+            .prefix_err(|| "WASM module must export 'memory'")?;
 
         Ok(Self {
             store,

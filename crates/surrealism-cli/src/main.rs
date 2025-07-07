@@ -1,4 +1,5 @@
 mod commands;
+pub(crate) mod host;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
