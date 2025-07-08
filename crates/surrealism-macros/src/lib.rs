@@ -12,6 +12,7 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let mut is_default = false;
     let mut export_name_override: Option<String> = None;
+    let mut is_init = false;
 
     for meta in args.iter() {
         match meta {
@@ -32,8 +33,11 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
             Meta::Path(path) if path.is_ident("default") => {
                 is_default = true;
             }
+            Meta::Path(path) if path.is_ident("init") => {
+                is_init = true;
+            }
             _ => panic!(
-                "Unsupported attribute: expected #[surrealism], #[surrealism(default)], or #[surrealism(name = \"...\")]"
+                "Unsupported attribute: expected #[surrealism], #[surrealism(default)], #[surrealism(init)], or #[surrealism(name = \"...\")]"
             ),
         }
     }
@@ -87,43 +91,54 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args_ident = format_ident!("__sr_args__{}", export_suffix);
     let returns_ident = format_ident!("__sr_returns__{}", export_suffix);
 
-    let expanded = quote! {
-        #fn_vis #fn_sig #fn_block
+    let expanded = if is_init {
+        quote! {
+            #fn_vis #fn_sig #fn_block
 
-        #[unsafe(no_mangle)]
-        pub extern "C" fn #export_ident(ptr: u32) -> u32 {
-            use surrealism::types::convert::Transfer;
-            let mut controller = surrealism::Controller {};
-            let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
-                |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
-            );
-            f.invoke_raw(&mut controller, ptr.into())
-                .unwrap()
-                .ptr()
+            #[unsafe(no_mangle)]
+            pub extern "C" fn __sr_init() {
+                #fn_name()
+            }
         }
+    } else {
+        quote! {
+            #fn_vis #fn_sig #fn_block
 
-        #[unsafe(no_mangle)]
-        pub extern "C" fn #args_ident() -> u32 {
-            use surrealism::types::convert::Transfer;
-            let mut controller = surrealism::Controller {};
-            let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
-                |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
-            );
-            f.args_raw(&mut controller)
-                .unwrap()
-                .ptr()
-        }
+            #[unsafe(no_mangle)]
+            pub extern "C" fn #export_ident(ptr: u32) -> u32 {
+                use surrealism::types::convert::Transfer;
+                let mut controller = surrealism::Controller {};
+                let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
+                    |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
+                );
+                f.invoke_raw(&mut controller, ptr.into())
+                    .unwrap()
+                    .ptr()
+            }
 
-        #[unsafe(no_mangle)]
-        pub extern "C" fn #returns_ident() -> u32 {
-            use surrealism::types::convert::Transfer;
-            let mut controller = surrealism::Controller {};
-            let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
-                |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
-            );
-            f.returns_raw(&mut controller)
-                .unwrap()
-                .ptr()
+            #[unsafe(no_mangle)]
+            pub extern "C" fn #args_ident() -> u32 {
+                use surrealism::types::convert::Transfer;
+                let mut controller = surrealism::Controller {};
+                let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
+                    |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
+                );
+                f.args_raw(&mut controller)
+                    .unwrap()
+                    .ptr()
+            }
+
+            #[unsafe(no_mangle)]
+            pub extern "C" fn #returns_ident() -> u32 {
+                use surrealism::types::convert::Transfer;
+                let mut controller = surrealism::Controller {};
+                let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
+                    |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
+                );
+                f.returns_raw(&mut controller)
+                    .unwrap()
+                    .ptr()
+            }
         }
     };
 

@@ -67,12 +67,15 @@ impl Controller {
             .get_memory(&mut store, "memory")
             .prefix_err(|| "WASM module must export 'memory'")?;
 
-        Ok(Self {
+        let mut controller = Self {
             store,
             instance,
             memory,
             config,
-        })
+        };
+
+        controller.init()?;
+        Ok(controller)
     }
 
     pub fn alloc(&mut self, len: u32, align: u32) -> Result<u32> {
@@ -87,6 +90,18 @@ impl Controller {
             .instance
             .get_typed_func::<(u32, u32), ()>(&mut self.store, "__sr_free")?;
         alloc.call(&mut self.store, (ptr, len))
+    }
+
+    pub fn init(&mut self) -> Result<()> {
+        let init = self.instance.get_export(&mut self.store, "__sr_init");
+        if init.is_none() {
+            return Ok(());
+        }
+
+        let init = self
+            .instance
+            .get_typed_func::<(), ()>(&mut self.store, "__sr_init")?;
+        init.call(&mut self.store, ())
     }
 
     pub fn invoke<A: Args>(&mut self, name: Option<String>, args: A) -> Result<sql::Value> {

@@ -325,3 +325,9 @@ impl<T: KindOf> KindOf for Option<T> {
         sql::Kind::Option(Box::new(T::kindof()))
     }
 }
+
+impl KindOf for () {
+    fn kindof() -> sql::Kind {
+        sql::Kind::Any
+    }
+}

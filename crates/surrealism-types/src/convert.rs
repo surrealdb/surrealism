@@ -409,6 +409,20 @@ impl Transferrable for Thing {
     }
 }
 
+impl Transferrable for () {
+    fn into_transferrable(self, _controller: &mut dyn MemoryController) -> Result<Value> {
+        Ok(Value::SR_VALUE_NONE)
+    }
+
+    fn from_transferrable(value: Value, _controller: &mut dyn MemoryController) -> Result<Self> {
+        if let Value::SR_VALUE_NONE = value {
+            Ok(())
+        } else {
+            Err(Error::UnexpectedType(value.kindof(), Kind::Any).into())
+        }
+    }
+}
+
 impl Transferrable for sql::Thing {
     fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<Value> {
         Ok(Value::SR_VALUE_THING(self.into_transferrable(controller)?))

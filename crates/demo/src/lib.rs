@@ -2,10 +2,13 @@ use surrealism::surrealism;
 
 // use some_crate::weight;
 
-// #[surrealism(init)]
-// fn init() {
-//     surrealism::ml::load_weights("mistral-7b-instruct-v0.1", []);
-// }
+#[surrealism(init)]
+fn init() {
+    // let _: () = surrealism::sql(r#"
+    //     DEFINE TABLE demo_module_data;
+    //     // some fields
+    // "#).unwrap();
+}
 
 #[surrealism]
 fn can_drive(age: i64) -> bool {
@@ -41,8 +44,8 @@ fn def(age: i64) -> bool {
 // calculate sentiment of a question (is the user happy or not)
 #[surrealism]
 fn js_support_agent_sentiment(question: String) -> i64 {
-    let tokenizer = "mistral-7b-instruct-v0.1".to_string();
-    let model = "bert-base-uncased".to_string();
+    let tokenizer = "mistral-7b-instruct-v0.1";
+    let model = "bert-base-uncased";
     let tokenized = surrealism::ml::tokenize(tokenizer, question).unwrap(); // do we also pass weights?
     surrealism::ml::invoke_model(model, tokenized, 100).unwrap()
 }
@@ -53,6 +56,6 @@ fn js_support_agent_response(question: String) -> String {
     let prompt = format!(
         "<system>You're a support agent whos an expert in javascript, give a good response to the user so that they dont churn in our product.</system><user>{question}</user>"
     );
-    let model = "mistral-7b-instruct-v0.1".to_string();
+    let model = "mistral-7b-instruct-v0.1";
     surrealism::ml::invoke_model(model, prompt, 100).unwrap()
 }
