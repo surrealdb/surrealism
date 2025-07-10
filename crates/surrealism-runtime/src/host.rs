@@ -1,6 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use anyhow::Result;
+use async_trait::async_trait;
 use surrealdb::sql;
 use surrealism_types::{
     array::TransferredArray,
@@ -15,9 +16,100 @@ use wasmtime::{Caller, Linker};
 
 use crate::controller::StoreData;
 
+macro_rules! host_try_or_return {
+    ($error:expr,$expr:expr) => {
+        match $expr {
+            Ok(val) => val,
+            Err(e) => {
+                eprintln!("{}: {}", $error, e);
+                return -1;
+            }
+        }
+    };
+}
+
+
+
+/// Macro to register a host function with automatic argument conversion and error handling.
+/// Returns -1 on error (logged to stderr), positive values are valid pointers.
+#[macro_export]
+macro_rules! register_host_function {
+    // Async version with 2 arguments
+    ($linker:expr, $name:expr, async |$controller:ident : $controller_ty:ty, $arg1:ident : $arg1_ty:ty, $arg2:ident : $arg2_ty:ty| -> Result<$ret:ty> { $($body:tt)* }) => {{
+        $linker
+            .func_wrap_async(
+                "env",
+                $name,
+                |caller: Caller<StoreData>, params: (u32, u32,)| -> Box<dyn std::future::Future<Output = i32> + Send + '_> {
+                    Box::new(async move {
+                        let mut $controller: $controller_ty = HostController::from(caller);
+                        let ($arg1, $arg2,) = params;
+                        
+                        // Handle argument receiving errors gracefully
+                        let $arg1 = host_try_or_return!("Failed to receive argument", <$arg1_ty>::receive($arg1.into(), &mut $controller));
+                        let $arg2 = host_try_or_return!("Failed to receive argument", <$arg2_ty>::receive($arg2.into(), &mut $controller));
+                        
+                        // Execute the main function body and handle errors gracefully
+                        let result = async { $($body)* };
+                        let result = host_try_or_return!("Host function error", result.await);
+                        host_try_or_return!("Transfer error", <$ret>::transfer(result, &mut $controller)).ptr() as i32
+                    })
+                }
+            )
+            .prefix_err(|| "failed to register host function")?
+    }};
+    
+    // Async version with 3 arguments
+    ($linker:expr, $name:expr, async |$controller:ident : $controller_ty:ty, $arg1:ident : $arg1_ty:ty, $arg2:ident : $arg2_ty:ty, $arg3:ident : $arg3_ty:ty| -> Result<$ret:ty> { $($body:tt)* }) => {{
+        $linker
+            .func_wrap_async(
+                "env",
+                $name,
+                |caller: Caller<StoreData>, params: (u32, u32, u32,)| -> Box<dyn std::future::Future<Output = i32> + Send + '_> {
+                    Box::new(async move {
+                        let mut $controller: $controller_ty = HostController::from(caller);
+                        let ($arg1, $arg2, $arg3,) = params;
+                        
+                        // Handle argument receiving errors gracefully
+                        let $arg1 = host_try_or_return!("Failed to receive argument", <$arg1_ty>::receive($arg1.into(), &mut $controller));
+                        let $arg2 = host_try_or_return!("Failed to receive argument", <$arg2_ty>::receive($arg2.into(), &mut $controller));
+                        let $arg3 = host_try_or_return!("Failed to receive argument", <$arg3_ty>::receive($arg3.into(), &mut $controller));
+                        
+                        // Execute the main function body and handle errors gracefully
+                        let result = async { $($body)* };
+                        let result = host_try_or_return!("Host function error", result.await);
+                        host_try_or_return!("Transfer error", <$ret>::transfer(result, &mut $controller)).ptr() as i32
+                    })
+                }
+            )
+            .prefix_err(|| "failed to register host function")?
+    }};
+    
+    // Sync version with dynamic arguments
+    ($linker:expr, $name:expr, |$controller:ident : $controller_ty:ty, $($arg:ident : $arg_ty:ty),*| -> Result<$ret:ty> $body:tt) => {{
+        $linker
+            .func_wrap(
+                "env",
+                $name,
+                |caller: Caller<StoreData>, $($arg: u32),*| -> i32 {
+                    let mut $controller: $controller_ty = HostController::from(caller);
+                    
+                    // Handle argument receiving errors gracefully
+                    $(let $arg = host_try_or_return!("Failed to receive argument", <$arg_ty>::receive($arg.into(), &mut $controller));)*
+                    
+                    // Execute the main function body and handle errors gracefully
+                    let result = host_try_or_return!("Host function error", (|| -> Result<$ret> $body)());
+                    host_try_or_return!("Transfer error", <$ret>::transfer(result, &mut $controller)).ptr() as i32
+                }
+            )
+            .prefix_err(|| "failed to register host function")?
+    }};
+}
+
+#[async_trait]
 pub trait Host: Send {
-    fn sql(&self, query: String, vars: sql::Object) -> Result<sql::Value>;
-    fn run(
+    async fn sql(&self, query: String, vars: sql::Object) -> Result<sql::Value>;
+    async fn run(
         &self,
         fnc: String,
         version: Option<String>,
@@ -29,148 +121,48 @@ pub trait Host: Send {
 }
 
 pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
-    linker
-        .func_wrap(
-            "env",
-            "__sr_sql",
-            |caller: Caller<StoreData>, sql: u32, vars: u32| -> u32 {
-                let mut controller = HostController::from(caller);
+    register_host_function!(
+        linker, 
+        "__sr_sql", 
+        async |controller: HostController, sql: Strand, vars: Object| -> Result<Value> {
+            let sql = String::from_transferrable(sql, &mut controller)?;
+            let vars = sql::Object::from_transferrable(vars, &mut controller)?;
+            controller.host().sql(sql, vars).await?.into_transferrable(&mut controller)
+        }
+    );
 
-                let sql = String::from_transferrable(
-                    Strand::receive(sql.into(), &mut controller).unwrap(),
-                    &mut controller,
-                )
-                .unwrap();
+    register_host_function!(
+        linker, 
+        "__sr_run", 
+        async |controller: HostController, fnc: Strand, version: COption<Strand>, args: TransferredArray<Value>| -> Result<Value> {
+            let fnc = String::from_transferrable(fnc, &mut controller)?;
+            let version = Option::<String>::from_transferrable(version, &mut controller)?;
+            let args_vec = Vec::<Value>::from_transferrable(args, &mut controller)?;
+            let args = args_vec.into_iter().map(|x| sql::Value::from_transferrable(x, &mut controller)).collect::<Result<Vec<sql::Value>>>()?;
+            controller.host().run(fnc, version, args).await?.into_transferrable(&mut controller)
+        }
+    );
 
-                let vars = sql::Object::from_transferrable(
-                    Object::receive(vars.into(), &mut controller).unwrap(),
-                    &mut controller,
-                )
-                .unwrap();
+    register_host_function!(
+        linker, 
+        "__sr_ml_invoke_model", 
+        |controller: HostController, model: Strand, input: Value, weight: i64| -> Result<Value>{
+            let model = String::from_transferrable(model, &mut controller)?;
+            let input = sql::Value::from_transferrable(input, &mut controller)?;
+            controller.host().ml_invoke_model(model, input, weight)?.into_transferrable(&mut controller)
+        }
+    );
 
-                let result = controller
-                    .host()
-                    .sql(sql, vars)
-                    .unwrap()
-                    .into_transferrable(&mut controller)
-                    .unwrap()
-                    .transfer(&mut controller)
-                    .unwrap();
+    register_host_function!(
+        linker, 
+        "__sr_ml_tokenize", 
+        |controller: HostController, model: Strand, input: Value| -> Result<TransferredArray<f64>> {
+            let model = String::from_transferrable(model, &mut controller)?;
+            let input = sql::Value::from_transferrable(input, &mut controller)?;
+            controller.host().ml_tokenize(model, input)?.into_transferrable(&mut controller)
+        }
+    );
 
-                result.ptr()
-            },
-        )
-        .prefix_err(|| "failed to register host function")?;
-
-    linker
-        .func_wrap(
-            "env",
-            "__sr_run",
-            |caller: Caller<StoreData>, fnc: u32, version: u32, args: u32| -> u32 {
-                let mut controller = HostController::from(caller);
-
-                let fnc = String::from_transferrable(
-                    Strand::receive(fnc.into(), &mut controller).unwrap(),
-                    &mut controller,
-                )
-                .unwrap();
-
-                let version = Option::<String>::from_transferrable(
-                    COption::<Strand>::receive(version.into(), &mut controller).unwrap(),
-                    &mut controller,
-                )
-                .unwrap();
-
-                let args = Vec::<Value>::from_transferrable(
-                    TransferredArray::<Value>::receive(args.into(), &mut controller).unwrap(),
-                    &mut controller,
-                )
-                .unwrap()
-                .into_iter()
-                .map(|x| sql::Value::from_transferrable(x, &mut controller))
-                .collect::<Result<Vec<sql::Value>>>()
-                .unwrap();
-
-                let result = controller
-                    .host()
-                    .run(fnc, version, args)
-                    .unwrap()
-                    .into_transferrable(&mut controller)
-                    .unwrap()
-                    .transfer(&mut controller)
-                    .unwrap();
-
-                result.ptr()
-            },
-        )
-        .prefix_err(|| "failed to register host function")?;
-
-    linker
-        .func_wrap(
-            "env",
-            "__sr_ml_invoke_model",
-            |caller: Caller<StoreData>, model: u32, input: u32, weight: u32| -> u32 {
-                let mut controller = HostController::from(caller);
-
-                let model = String::from_transferrable(
-                    Strand::receive(model.into(), &mut controller).unwrap(),
-                    &mut controller,
-                )
-                .unwrap();
-
-                let input = sql::Value::from_transferrable(
-                    Value::receive(input.into(), &mut controller).unwrap(),
-                    &mut controller,
-                )
-                .unwrap();
-
-                let weight = i64::receive(weight.into(), &mut controller).unwrap();
-
-                let result = controller
-                    .host()
-                    .ml_invoke_model(model, input, weight)
-                    .unwrap()
-                    .into_transferrable(&mut controller)
-                    .unwrap()
-                    .transfer(&mut controller)
-                    .unwrap();
-
-                result.ptr()
-            },
-        )
-        .prefix_err(|| "failed to register host function")?;
-
-    linker
-        .func_wrap(
-            "env",
-            "__sr_ml_tokenize",
-            |caller: Caller<StoreData>, model: u32, input: u32| -> u32 {
-                let mut controller = HostController::from(caller);
-
-                let model = String::from_transferrable(
-                    Strand::receive(model.into(), &mut controller).unwrap(),
-                    &mut controller,
-                )
-                .unwrap();
-
-                let input = sql::Value::from_transferrable(
-                    Value::receive(input.into(), &mut controller).unwrap(),
-                    &mut controller,
-                )
-                .unwrap();
-
-                let result = Transferrable::<TransferredArray<f64>>::into_transferrable(
-                    controller.host().ml_tokenize(model, input).unwrap(),
-                    &mut controller,
-                )
-                .unwrap()
-                .transfer(&mut controller)
-                .unwrap();
-
-                result.ptr()
-            },
-        )
-        .prefix_err(|| "failed to register host function")?;
     Ok(())
 }
 

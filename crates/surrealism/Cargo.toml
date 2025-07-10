@@ -1,26 +1,24 @@
 [package]
 name = "surrealism"
-authors.workspace = true
-edition.workspace = true
-license-file.workspace = true
-publish.workspace = true
-version.workspace = true
-rust-version.workspace = true
-description.workspace = true
-repository.workspace = true
-homepage.workspace = true
-keywords.workspace = true
-categories.workspace = true
-
-[lib]
-crate-type = ["cdylib", "rlib"]
+version = "0.1.0"
+edition = "2021"
+authors = ["Tobie Morgan Hitchcock <tobie@surrealdb.com>"]
+description = "A scalable, distributed, collaborative, document-graph database."
+license-file = "LICENSE"
+repository = "https://github.com/surrealdb/surrealdb"
+homepage = "https://github.com/surrealdb/surrealdb"
+keywords = ["database", "embedded-database", "key-value", "key-value-store", "kv-store"]
+categories = ["database-implementations", "data-structures", "embedded"]
 
 [dependencies]
-anyhow = "1.0.98"
+anyhow.workspace = true
+async-trait.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+wasmtime.workspace = true
 surrealdb.workspace = true
-surrealism-macros = { version = "3.0.0", path = "../surrealism-macros" }
-surrealism-types = { version = "3.0.0", path = "../surrealism-types" }
-thiserror = "2.0.12"
-
-[lints]
-workspace = true
+uuid.workspace = true
+chrono.workspace = true
+surrealism-macros = { path = "../surrealism-macros" }
+surrealism-types = { path = "../surrealism-types" }

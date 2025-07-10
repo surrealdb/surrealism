@@ -1,26 +1,18 @@
 [package]
 name = "surrealism-types"
-authors.workspace = true
-edition.workspace = true
-license-file.workspace = true
-publish.workspace = true
-version.workspace = true
-rust-version.workspace = true
-description.workspace = true
-repository.workspace = true
-homepage.workspace = true
-keywords.workspace = true
-categories.workspace = true
+version = "0.1.0"
+edition = "2021"
+authors = ["Tobie Morgan Hitchcock <tobie@surrealdb.com>"]
+description = "Types for Surrealism."
+license-file = "LICENSE"
+repository = "https://github.com/surrealdb/surrealdb"
+homepage = "https://github.com/surrealdb/surrealdb"
 
 [dependencies]
-anyhow = "1.0.98"
-chrono.workspace = true
-surrealdb.workspace = true
-thiserror = "2.0.12"
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
 uuid.workspace = true
-
-[lib]
-crate-type = ["cdylib", "rlib"]
-
-[lints]
-workspace = true
+surrealdb.workspace = true
+chrono.workspace = true

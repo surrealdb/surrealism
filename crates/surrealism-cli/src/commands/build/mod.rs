@@ -55,7 +55,7 @@ fn load_config(path: &Path) -> Result<SurrealismConfig> {
 fn build_wasm_module(path: &PathBuf) -> Result<()> {
     println!("Building WASM module...");
     let cargo_status = Command::new("cargo")
-        .args(["build", "--target", "wasm32-wasip1", "--release"])
+        .args(["build", "--target", "wasm32-unknown-unknown", "--release"])
         .current_dir(path)
         .status()
         .prefix_err(|| "Failed to execute cargo build")?;

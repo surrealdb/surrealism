@@ -5,15 +5,15 @@ use surrealism_types::{
     convert::{Transfer, Transferrable},
     object::KeyValuePair,
     string::Strand,
-    utils::COption,
+    utils::{COption, CResult},
     value::Value,
 };
 
 use crate::Controller;
 
 unsafe extern "C" {
-    unsafe fn __sr_sql(sql_ptr: u32, vars_ptr: u32) -> u32;
-    unsafe fn __sr_run(fnc_ptr: u32, version_ptr: u32, vars_ptr: u32) -> u32;
+    unsafe fn __sr_sql(sql_ptr: u32, vars_ptr: u32) -> i32;
+    unsafe fn __sr_run(fnc_ptr: u32, version_ptr: u32, vars_ptr: u32) -> i32;
 }
 
 pub fn sql<S, R>(sql: S) -> Result<R>
@@ -47,8 +47,8 @@ where
         .transfer(&mut controller)?;
 
     let result = unsafe { __sr_sql(sql.ptr(), vars.ptr()) };
-    let result = Value::receive(result.into(), &mut controller)?;
-    R::from_transferrable(result, &mut controller)
+    let result = CResult::<Value>::receive(result.try_into()?, &mut controller)?;
+    Result::<R>::from_transferrable(result, &mut controller)?
 }
 
 pub fn run<F, A, R>(fnc: F, version: Option<String>, args: A) -> Result<R>
@@ -68,8 +68,8 @@ where
     let args = args.transfer_args(&mut controller)?;
 
     let result = unsafe { __sr_run(fnc.ptr(), version.ptr(), args.ptr()) };
-    let result = Value::receive(result.into(), &mut controller)?;
-    R::from_transferrable(result, &mut controller)
+    let result = CResult::<Value>::receive(result.try_into()?, &mut controller)?;
+    Result::<R>::from_transferrable(result, &mut controller)?
 }
 
 pub mod ml {
@@ -77,13 +77,13 @@ pub mod ml {
     use anyhow::Result;
     use surrealism_types::{
         array::TransferredArray,
-        convert::{Transfer, Transferrable},
+        convert::{Transfer, Transferrable}, utils::CResult,
     };
     use surrealism_types::{string::Strand, value::Value};
 
     unsafe extern "C" {
-        unsafe fn __sr_ml_invoke_model(model_ptr: u32, input_ptr: u32, weight_ptr: u32) -> u32;
-        unsafe fn __sr_ml_tokenize(tokenizer_ptr: u32, input_ptr: u32) -> u32;
+        unsafe fn __sr_ml_invoke_model(model_ptr: u32, input_ptr: u32, weight_ptr: u32) -> i32;
+        unsafe fn __sr_ml_tokenize(tokenizer_ptr: u32, input_ptr: u32) -> i32;
     }
 
     pub fn invoke_model<M, I, R>(model: M, input: I, weight: i64) -> Result<R>
@@ -102,8 +102,8 @@ pub mod ml {
         let weight = weight.transfer(&mut controller)?;
 
         let result = unsafe { __sr_ml_invoke_model(model.ptr(), input.ptr(), weight.ptr()) };
-        let result = Value::receive(result.into(), &mut controller)?;
-        R::from_transferrable(result, &mut controller)
+        let result = CResult::<Value>::receive(result.try_into()?, &mut controller)?;
+        Result::<R>::from_transferrable(result, &mut controller)?
     }
 
     pub fn tokenize<T, I>(tokenizer: T, input: I) -> Result<Vec<f64>>
@@ -120,7 +120,7 @@ pub mod ml {
             .transfer(&mut controller)?;
 
         let result = unsafe { __sr_ml_tokenize(tokenizer.ptr(), input.ptr()) };
-        let result = TransferredArray::<f64>::receive(result.into(), &mut controller)?;
-        Vec::<f64>::from_transferrable(result, &mut controller)
+        let result = CResult::<TransferredArray<f64>>::receive(result.try_into()?, &mut controller)?;
+        Result::<Vec<f64>>::from_transferrable(result, &mut controller)?
     }
 }
