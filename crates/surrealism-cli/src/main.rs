@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use surrealdb::sql::Value;
 
 use crate::commands::{
-    SurrealismCommand, build::BuildCommand, info::InfoCommand, run::RunCommand, sig::SigCommand,
+    build::BuildCommand, info::InfoCommand, run::RunCommand, sig::SigCommand, SurrealismCommand,
 };
 
 /// CLI definition

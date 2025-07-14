@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{controller::MemoryController, err::Error, string::Strand};
 use anyhow::Result;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fmt::Display};
 use surrealdb::sql;
 
 #[repr(C)]
@@ -323,6 +323,12 @@ impl_kindof! {
 impl<T: KindOf> KindOf for Option<T> {
     fn kindof() -> sql::Kind {
         sql::Kind::Option(Box::new(T::kindof()))
+    }
+}
+
+impl<T: KindOf, E: Display> KindOf for Result<T, E> {
+    fn kindof() -> sql::Kind {
+        T::kindof()
     }
 }
 

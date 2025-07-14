@@ -8,6 +8,10 @@ license-file = "LICENSE"
 repository = "https://github.com/surrealdb/surrealdb"
 homepage = "https://github.com/surrealdb/surrealdb"
 
+[[bin]]
+name = "surrealism"
+path = "src/main.rs"
+
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
@@ -18,7 +22,6 @@ thiserror.workspace = true
 surrealism = { path = "../surrealism" }
 surrealism-types = { path = "../surrealism-types" }
 surrealism-runtime = { path = "../surrealism-runtime" }
-async-trait.workspace = true
 tempfile.workspace = true
 walrus.workspace = true
 wasm-opt.workspace = true

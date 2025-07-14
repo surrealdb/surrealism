@@ -7,12 +7,13 @@ use surrealism_types::array::TransferredArray;
 use surrealism_types::controller::MemoryController;
 use surrealism_types::convert::{Transfer, Transferrable, Transferred};
 use surrealism_types::kind::{Kind, KindOf};
+use surrealism_types::utils::CResult;
 use surrealism_types::value::Value;
 
 pub struct SurrealismFunction<A, R, F>
 where
     A: 'static + Send + Sync + Args + Debug,
-    R: 'static + Send + Sync + Transferrable<Value> + Debug,
+    R: 'static + Send + Sync + Transferrable<CResult<Value>> + Debug,
     F: 'static + Send + Sync + Fn(A) -> R,
 {
     function: F,
@@ -22,7 +23,7 @@ where
 impl<A, R, F> SurrealismFunction<A, R, F>
 where
     A: 'static + Send + Sync + Args + Debug,
-    R: 'static + Send + Sync + Transferrable<Value> + KindOf + Debug,
+    R: 'static + Send + Sync + Transferrable<CResult<Value>> + KindOf + Debug,
     F: 'static + Send + Sync + Fn(A) -> R,
 {
     pub fn from(function: F) -> Self {
@@ -68,7 +69,7 @@ where
         &self,
         controller: &mut dyn MemoryController,
         args: Transferred<TransferredArray<Value>>,
-    ) -> Result<Transferred<Value>> {
+    ) -> Result<Transferred<CResult<Value>>> {
         let args = A::accept_args(args, controller)?;
         self.invoke(args)?
             .into_transferrable(controller)?

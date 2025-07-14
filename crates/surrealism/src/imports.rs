@@ -1,3 +1,5 @@
+
+
 use anyhow::Result;
 use surrealdb::sql;
 use surrealism_types::{
@@ -72,12 +74,15 @@ where
     Result::<R>::from_transferrable(result, &mut controller)?
 }
 
+
+
 pub mod ml {
     use crate::Controller;
     use anyhow::Result;
     use surrealism_types::{
         array::TransferredArray,
-        convert::{Transfer, Transferrable}, utils::CResult,
+        convert::{Transfer, Transferrable},
+        utils::CResult,
     };
     use surrealism_types::{string::Strand, value::Value};
 
@@ -120,7 +125,8 @@ pub mod ml {
             .transfer(&mut controller)?;
 
         let result = unsafe { __sr_ml_tokenize(tokenizer.ptr(), input.ptr()) };
-        let result = CResult::<TransferredArray<f64>>::receive(result.try_into()?, &mut controller)?;
+        let result =
+            CResult::<TransferredArray<f64>>::receive(result.try_into()?, &mut controller)?;
         Result::<Vec<f64>>::from_transferrable(result, &mut controller)?
     }
 }

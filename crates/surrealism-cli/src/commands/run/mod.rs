@@ -19,14 +19,18 @@ impl SurrealismCommand for RunCommand {
         let host = DemoHost::boxed();
         let mut controller = surrealism_runtime::controller::Controller::new(package, host)
             .prefix_err(|| "Failed to load WASM module")?;
+        controller.init()?;
 
         // Invoke the function with the provided arguments
-        let result = controller
-            .invoke(self.fnc, self.args)
-            .prefix_err(|| "Failed to invoke function")?;
-
-        // Print the result with pretty display formatting
-        println!("{result:#}");
+        match controller.invoke(self.fnc, self.args) {
+            Ok(result) => {
+                println!("✅ {result:#}");
+            }
+            Err(e) => {
+                eprintln!("❌ {}", e);
+                return Err(e.into());
+            }
+        }
 
         Ok(())
     }

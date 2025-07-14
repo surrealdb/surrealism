@@ -1,6 +1,6 @@
 use crate::{
     config::SurrealismConfig,
-    host::{Host, implement_host_functions},
+    host::{implement_host_functions, Host},
     package::SurrealismPackage,
 };
 use anyhow::Result;
@@ -12,6 +12,7 @@ use surrealism_types::{
     convert::{Transfer, Transferrable},
     err::PrefixError,
     kind::Kind,
+    utils::CResult,
     value::Value,
 };
 use wasmtime::*;
@@ -46,10 +47,6 @@ impl Controller {
         implement_host_functions(&mut linker)
             .prefix_err(|| "failed to implement host functions")?;
 
-        let pre: InstancePre<StoreData> = linker
-            .instantiate_pre(&module)
-            .prefix_err(|| "failed to create instance pre")?;
-
         let wasi_ctx = WasiCtxBuilder::new()
             .inherit_stdio()
             .inherit_env()
@@ -60,22 +57,19 @@ impl Controller {
             host,
         };
         let mut store = Store::new(&engine, store_data);
-        let instance = pre
-            .instantiate(&mut store)
+        let instance = linker
+            .instantiate(&mut store, &module)
             .prefix_err(|| "failed to instantiate WASM module")?;
         let memory = instance
             .get_memory(&mut store, "memory")
             .prefix_err(|| "WASM module must export 'memory'")?;
 
-        let mut controller = Self {
+        Ok(Self {
             store,
             instance,
             memory,
             config,
-        };
-
-        controller.init()?;
-        Ok(controller)
+        })
     }
 
     pub fn alloc(&mut self, len: u32, align: u32) -> Result<u32> {
@@ -109,19 +103,19 @@ impl Controller {
         let args = args.transfer_args(self)?;
         let invoke = self
             .instance
-            .get_typed_func::<(u32,), (u32,)>(&mut self.store, &name)?;
+            .get_typed_func::<(u32,), (i32,)>(&mut self.store, &name)?;
         let (ptr,) = invoke.call(&mut self.store, (args.ptr(),))?;
-        let value = Value::receive(ptr.into(), self)?;
-        sql::Value::from_transferrable(value, self)
+        let value = CResult::<Value>::receive(ptr.try_into()?, self)?;
+        Result::<sql::Value>::from_transferrable(value, self)?
     }
 
     pub fn args(&mut self, name: Option<String>) -> Result<Vec<sql::Kind>> {
         let name = format!("__sr_args__{}", name.unwrap_or_default());
         let args = self
             .instance
-            .get_typed_func::<(), (u32,)>(&mut self.store, &name)?;
+            .get_typed_func::<(), (i32,)>(&mut self.store, &name)?;
         let (ptr,) = args.call(&mut self.store, ())?;
-        let array = TransferredArray::receive(ptr.into(), self)?;
+        let array = TransferredArray::<Kind>::receive(ptr.try_into()?, self)?;
         Vec::<Kind>::from_transferrable(array, self)?
             .into_iter()
             .map(|x| sql::Kind::from_transferrable(x, self))
@@ -132,9 +126,9 @@ impl Controller {
         let name = format!("__sr_returns__{}", name.unwrap_or_default());
         let returns = self
             .instance
-            .get_typed_func::<(), (u32,)>(&mut self.store, &name)?;
+            .get_typed_func::<(), (i32,)>(&mut self.store, &name)?;
         let (ptr,) = returns.call(&mut self.store, ())?;
-        let kind = Kind::receive(ptr.into(), self)?;
+        let kind = Kind::receive(ptr.try_into()?, self)?;
         sql::Kind::from_transferrable(kind, self)
     }
 

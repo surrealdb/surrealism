@@ -8,6 +8,9 @@ license-file = "LICENSE"
 repository = "https://github.com/surrealdb/surrealdb"
 homepage = "https://github.com/surrealdb/surrealdb"
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
 anyhow.workspace = true
 serde.workspace = true

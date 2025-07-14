@@ -12,3 +12,11 @@ echo "Running 'can_drive' function with argument 17 in 'demo.surli':"
 echo ""
 echo "Running 'can_drive' function with argument 18 in 'demo.surli':"
 ./surrealism run --fnc can_drive --arg 18 demo.surli
+
+echo ""
+echo "Running 'result' function with argument false in 'demo.surli':"
+./surrealism run --fnc result --arg false demo.surli
+
+echo ""
+echo "Running 'result' function with argument true in 'demo.surli':"
+./surrealism run --fnc result --arg true demo.surli

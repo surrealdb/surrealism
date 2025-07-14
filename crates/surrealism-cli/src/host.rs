@@ -1,5 +1,4 @@
 use anyhow::Result;
-use async_trait::async_trait;
 use std::io::BufRead;
 use surrealdb::sql;
 use surrealism_runtime::host::Host;
@@ -14,9 +13,8 @@ impl DemoHost {
     }
 }
 
-#[async_trait]
 impl Host for DemoHost {
-    async fn sql(&self, query: String, vars: sql::Object) -> Result<sql::Value> {
+    fn sql(&self, query: String, vars: sql::Object) -> Result<sql::Value> {
         println!("The module is running a SQL query:");
         println!("SQL: {query}");
         println!("Vars: {vars:#}");
@@ -36,7 +34,7 @@ impl Host for DemoHost {
         }
     }
 
-    async fn run(
+    fn run(
         &self,
         fnc: String,
         version: Option<String>,
@@ -122,3 +120,5 @@ impl Host for DemoHost {
         }
     }
 }
+
+

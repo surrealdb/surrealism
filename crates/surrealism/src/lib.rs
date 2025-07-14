@@ -8,3 +8,4 @@ pub use imports::{ml, run, sql};
 pub use registry::SurrealismFunction;
 pub use surrealism_macros::surrealism;
 pub use surrealism_types as types;
+

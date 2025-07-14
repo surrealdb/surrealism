@@ -1,9 +1,10 @@
-use anyhow::Result;
 use crate::{
     controller::MemoryController,
-    convert::{Transfer, Transferrable}, 
-    string::Strand, value::Value,
+    convert::{Transfer, Transferrable},
+    string::Strand,
+    value::Value,
 };
+use anyhow::Result;
 
 #[repr(C)]
 #[derive(Clone, Debug)]
@@ -158,7 +159,10 @@ where
         Ok(CResult::Ok(self.into_transferrable(controller)?))
     }
 
-    fn from_transferrable(value: CResult<Value>, controller: &mut dyn MemoryController) -> Result<Self> {
+    fn from_transferrable(
+        value: CResult<Value>,
+        controller: &mut dyn MemoryController,
+    ) -> Result<Self> {
         match value {
             CResult::Ok(x) => Ok(T::from_transferrable(x, controller)?),
             CResult::Err(e) => {

@@ -1,8 +1,8 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    Expr, ExprLit, FnArg, ItemFn, Lit, Meta, MetaNameValue, PatType, ReturnType, parse_macro_input,
-    punctuated::Punctuated, token::Comma,
+    parse_macro_input, punctuated::Punctuated, token::Comma, Expr, ExprLit, FnArg, GenericArgument,
+    ItemFn, Lit, Meta, MetaNameValue, PatType, PathArguments, ReturnType, Type, TypePath,
 };
 
 #[proc_macro_attribute]
@@ -74,10 +74,33 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
         )
     };
 
-    // Return type
-    let output_type = match &fn_sig.output {
-        ReturnType::Default => quote! { () },
-        ReturnType::Type(_, ty) => quote! { #ty },
+    // Return type analysis
+    let (output_type, is_result) = match &fn_sig.output {
+        ReturnType::Default => (quote! { () }, false),
+        ReturnType::Type(_, ty) => {
+            // Check if the return type is Result<T, E>
+            if let Type::Path(TypePath { path, .. }) = &**ty {
+                if let Some(last_segment) = path.segments.last() {
+                    if last_segment.ident == "Result" {
+                        if let PathArguments::AngleBracketed(args) = &last_segment.arguments {
+                            if let Some(GenericArgument::Type(inner_type)) = args.args.first() {
+                                (quote! { Result<#inner_type, String> }, true)
+                            } else {
+                                (quote! { #ty }, false)
+                            }
+                        } else {
+                            (quote! { #ty }, false)
+                        }
+                    } else {
+                        (quote! { #ty }, false)
+                    }
+                } else {
+                    (quote! { #ty }, false)
+                }
+            } else {
+                (quote! { #ty }, false)
+            }
+        }
     };
 
     // Export function names
@@ -91,53 +114,179 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args_ident = format_ident!("__sr_args__{}", export_suffix);
     let returns_ident = format_ident!("__sr_returns__{}", export_suffix);
 
+    // DRY error handling pattern
+    let try_or_fail = |expr: proc_macro2::TokenStream, context: &str| {
+        let context = syn::LitStr::new(context, proc_macro2::Span::call_site());
+        quote! {
+            match #expr {
+                Ok(val) => val,
+                Err(e) => {
+                                            eprintln!(concat!(#context, " error: {}"), e);
+                    return -1;
+                }
+            }
+        }
+    };
+
     let expanded = if is_init {
+        let init_call = if is_result {
+            let expr = quote! { #fn_name() };
+            quote! {
+                match #expr {
+                    Ok(()) => 0,
+                    Err(e) => {
+                        eprintln!("Init error: {}", e);
+                        -1
+                    }
+                }
+            }
+        } else {
+            quote! {
+                #fn_name();
+                0
+            }
+        };
+
         quote! {
             #fn_vis #fn_sig #fn_block
 
             #[unsafe(no_mangle)]
-            pub extern "C" fn __sr_init() {
-                #fn_name()
+            pub extern "C" fn __sr_init() -> i32 {
+                #init_call
             }
         }
     } else {
+        let function_call = if is_result {
+            quote! {
+                #fn_name(#(#arg_patterns),*).map_err(|e| e.to_string())
+            }
+        } else {
+            quote! {
+                #fn_name(#(#arg_patterns),*)
+            }
+        };
+
+        let transfer_call = if is_result {
+            let expr = quote! { f.invoke_raw(&mut controller, ptr.into()) };
+            let try_or_fail_result = try_or_fail(expr, "Function invocation");
+            quote! {
+                #try_or_fail_result
+                .ptr()
+                .try_into()
+                .unwrap_or_else(|_| {
+                    eprintln!("Transfer error: pointer overflow");
+                    -1
+                })
+            }
+        } else {
+            quote! {
+                match f.invoke_raw(&mut controller, ptr.into()) {
+                    Ok(result) =>                     match result.ptr().try_into() {
+                        Ok(ptr) => ptr,
+                        Err(_) => {
+                            eprintln!("Transfer error: pointer overflow");
+                            -1
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("Function invocation error: {}", e);
+                        -1
+                    }
+                }
+            }
+        };
+
+        let args_call = if is_result {
+            let expr = quote! { f.args_raw(&mut controller) };
+            let try_or_fail_result = try_or_fail(expr, "Args");
+            quote! {
+                #try_or_fail_result
+                .ptr()
+                .try_into()
+                .unwrap_or_else(|_| {
+                    eprintln!("Transfer error: pointer overflow");
+                    -1
+                })
+            }
+        } else {
+            quote! {
+                match f.args_raw(&mut controller) {
+                    Ok(result) => match result.ptr().try_into() {
+                        Ok(ptr) => ptr,
+                        Err(_) => {
+                            eprintln!("Transfer error: pointer overflow");
+                            -1
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("Args error: {}", e);
+                        -1
+                    }
+                }
+            }
+        };
+
+        let returns_call = if is_result {
+            let expr = quote! { f.returns_raw(&mut controller) };
+            let try_or_fail_result = try_or_fail(expr, "Returns");
+            quote! {
+                #try_or_fail_result
+                .ptr()
+                .try_into()
+                .unwrap_or_else(|_| {
+                    eprintln!("Transfer error: pointer overflow");
+                    -1
+                })
+            }
+        } else {
+            quote! {
+                match f.returns_raw(&mut controller) {
+                    Ok(result) => match result.ptr().try_into() {
+                        Ok(ptr) => ptr,
+                        Err(_) => {
+                            eprintln!("Transfer error: pointer overflow");
+                            -1
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("Returns error: {}", e);
+                        -1
+                    }
+                }
+            }
+        };
+
         quote! {
             #fn_vis #fn_sig #fn_block
 
             #[unsafe(no_mangle)]
-            pub extern "C" fn #export_ident(ptr: u32) -> u32 {
+            pub extern "C" fn #export_ident(ptr: u32) -> i32 {
                 use surrealism::types::convert::Transfer;
                 let mut controller = surrealism::Controller {};
                 let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
-                    |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
+                    |#tuple_pattern: #tuple_type| #function_call
                 );
-                f.invoke_raw(&mut controller, ptr.into())
-                    .unwrap()
-                    .ptr()
+                #transfer_call
             }
 
             #[unsafe(no_mangle)]
-            pub extern "C" fn #args_ident() -> u32 {
+            pub extern "C" fn #args_ident() -> i32 {
                 use surrealism::types::convert::Transfer;
                 let mut controller = surrealism::Controller {};
                 let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
-                    |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
+                    |#tuple_pattern: #tuple_type| #function_call
                 );
-                f.args_raw(&mut controller)
-                    .unwrap()
-                    .ptr()
+                #args_call
             }
 
             #[unsafe(no_mangle)]
-            pub extern "C" fn #returns_ident() -> u32 {
+            pub extern "C" fn #returns_ident() -> i32 {
                 use surrealism::types::convert::Transfer;
                 let mut controller = surrealism::Controller {};
                 let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
-                    |#tuple_pattern: #tuple_type| #fn_name(#(#arg_patterns),*)
+                    |#tuple_pattern: #tuple_type| #function_call
                 );
-                f.returns_raw(&mut controller)
-                    .unwrap()
-                    .ptr()
+                #returns_call
             }
         }
     };

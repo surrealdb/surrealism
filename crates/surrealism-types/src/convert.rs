@@ -97,7 +97,9 @@ impl<T> TryFrom<i32> for Transferred<T> {
     type Error = anyhow::Error;
     fn try_from(ptr: i32) -> Result<Self> {
         if ptr < 0 {
-            Err(anyhow::anyhow!("Failed to process transfer, pointer is negative"))
+            Err(anyhow::anyhow!(
+                "Failed to process transfer, pointer is negative"
+            ))
         } else {
             Ok(Transferred::from_ptr(ptr as u32))
         }
