@@ -266,11 +266,11 @@ pub mod ml {
     use surrealism_types::{string::Strand, value::Value};
 
     unsafe extern "C" {
-        unsafe fn __sr_ml_invoke_model(model_ptr: u32, input_ptr: u32, weight_ptr: u32) -> i32;
+        unsafe fn __sr_ml_invoke_model(model_ptr: u32, input_ptr: u32, weight_ptr: u32, weight_dir: u32) -> i32;
         unsafe fn __sr_ml_tokenize(tokenizer_ptr: u32, input_ptr: u32) -> i32;
     }
 
-    pub fn invoke_model<M, I, R>(model: M, input: I, weight: i64) -> Result<R>
+    pub fn invoke_model<M, I, R>(model: M, input: I, weight: i64, weight_dir: I) -> Result<R>
     where
         M: Into<String>,
         I: Transferrable<Value>,
@@ -284,8 +284,11 @@ pub mod ml {
             .into_transferrable(&mut controller)?
             .transfer(&mut controller)?;
         let weight = weight.transfer(&mut controller)?;
+        let weight_dir = weight_dir
+            .into_transferrable(&mut controller)?
+            .transfer(&mut controller)?;
 
-        let result = unsafe { __sr_ml_invoke_model(model.ptr(), input.ptr(), weight.ptr()) };
+        let result = unsafe { __sr_ml_invoke_model(model.ptr(), input.ptr(), weight.ptr(), weight_dir.ptr()) };
         let result = CResult::<Value>::receive(result.try_into()?, &mut controller)?;
         Result::<R>::from_transferrable(result, &mut controller)?
     }

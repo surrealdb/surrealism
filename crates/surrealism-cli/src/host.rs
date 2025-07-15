@@ -5,6 +5,13 @@ use surrealism_runtime::{
     host::Host,
     kv::{BTreeMapStore, KVStore},
 };
+use std::path::PathBuf;
+use surrealml_llms::{
+    interface::{load_model::load_model, run_model::run_model},
+    models::model_spec::{model_spec_trait::ModelSpec, models::gemma::Gemma},
+};
+use candle_core::DType;
+
 
 use crate::parse_value;
 
@@ -76,25 +83,34 @@ impl Host for DemoHost {
         }
     }
 
-    fn ml_invoke_model(&self, model: String, input: sql::Value, weight: i64) -> Result<sql::Value> {
-        println!("The module is running a ML model:");
-        println!("Model: {model}");
-        println!("Input: {input:}");
-        println!("Weight: {weight}");
-        println!("Please enter the result:");
+    // "google/gemma-7b"
+    fn ml_invoke_model(&self, model: String, input: sql::Value, weight_dir: sql::Value) -> Result<sql::Value> {
+        let sql::Value::Strand(input) = input else {
+            anyhow::bail!("Expected string input")
+        };
+        let sql::Value::Strand(weight_dir) = weight_dir else {
+            anyhow::bail!("Expected string input")
+        };
+        let home = std::env::var("HOME").unwrap();
+        // For HF cached weights at to be loaded but we can store the weights somewhere for all
+        // later and reference them.
+        // let weight_path = "google--gemma-7b";
+        let base = PathBuf::from(home).join(
+            format!(".cache/huggingface/hub/models--{}/snapshots", &weight_dir)
+        );
+        
+        let snapshot = std::fs::read_dir(&base)
+            .unwrap()
+            .next()
+            .unwrap()?
+            .path();
 
-        loop {
-            match parse_value(&mut std::io::stdin().lock().lines().next().unwrap().unwrap()) {
-                Ok(x) => {
-                    println!(" ");
-                    return Ok(x);
-                }
-                Err(e) => {
-                    println!("Failed to parse value: {e}");
-                    println!("Please try again");
-                }
-            }
-        }
+        let names = Gemma.return_tensor_filenames();
+        let paths: Vec<PathBuf> = names.into_iter().map(|f| snapshot.join(f)).collect();
+        let mut wrapper = load_model(&model, DType::F16, Some(paths), None)
+            .expect("Gemma should load from local cache");
+        let input = input.to_string();
+        Ok(run_model(&mut wrapper, input, 20).expect("run_model should succeed").into())
     }
 
     fn ml_tokenize(&self, model: String, input: sql::Value) -> Result<Vec<f64>> {

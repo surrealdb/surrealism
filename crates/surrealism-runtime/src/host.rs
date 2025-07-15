@@ -68,7 +68,7 @@ pub trait Host: Send {
 
     fn kv(&mut self) -> &mut dyn KVStore;
 
-    fn ml_invoke_model(&self, model: String, input: sql::Value, weight: i64) -> Result<sql::Value>;
+    fn ml_invoke_model(&self, model: String, input: sql::Value, weight: i64, weight_dir: sql::Value) -> Result<sql::Value>;
     fn ml_tokenize(&self, model: String, input: sql::Value) -> Result<Vec<f64>>;
 
     /// Handle stdout output from the WASM module
@@ -157,28 +157,6 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
         controller
             .host()
             .run(fnc, version, args)?
-            .into_transferrable(&mut controller)
-    });
-
-    // ML invoke model function
-    #[rustfmt::skip]
-    register_host_function!(linker, "__sr_ml_invoke_model", |controller: HostController, model: Strand, input: Value, weight: i64| -> Result<Value> {
-        let model = String::from_transferrable(model, &mut controller)?;
-        let input = sql::Value::from_transferrable(input, &mut controller)?;
-        controller
-            .host()
-            .ml_invoke_model(model, input, weight)?
-            .into_transferrable(&mut controller)
-    });
-
-    // ML tokenize function
-    #[rustfmt::skip]
-    register_host_function!(linker, "__sr_ml_tokenize", |controller: HostController, model: Strand, input: Value| -> Result<TransferredArray<f64>> {
-        let model = String::from_transferrable(model, &mut controller)?;
-        let input = sql::Value::from_transferrable(input, &mut controller)?;
-        controller
-            .host()
-            .ml_tokenize(model, input)?
             .into_transferrable(&mut controller)
     });
 
@@ -272,6 +250,29 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
         let start = Bound::<String>::from_transferrable(range.start, &mut controller)?;
         let end = Bound::<String>::from_transferrable(range.end, &mut controller)?;
         controller.host_mut().kv().count(start, end)
+    });
+
+    // ML invoke model function
+    #[rustfmt::skip]
+    register_host_function!(linker, "__sr_ml_invoke_model", |controller: HostController, model: Strand, input: Value, weight: i64, weight_dir: Value| -> Result<Value> {
+        let model = String::from_transferrable(model, &mut controller)?;
+        let input = sql::Value::from_transferrable(input, &mut controller)?;
+        let weight_dir = sql::Value::from_transferrable(weight_dir, &mut controller)?;
+        controller
+            .host()
+            .ml_invoke_model(model, input, weight, weight_dir)?
+            .into_transferrable(&mut controller)
+    });
+
+    // ML tokenize function
+    #[rustfmt::skip]
+    register_host_function!(linker, "__sr_ml_tokenize", |controller: HostController, model: Strand, input: Value| -> Result<TransferredArray<f64>> {
+        let model = String::from_transferrable(model, &mut controller)?;
+        let input = sql::Value::from_transferrable(input, &mut controller)?;
+        controller
+            .host()
+            .ml_tokenize(model, input)?
+            .into_transferrable(&mut controller)
     });
 
     // Custom stdout handler (WASI-compatible)

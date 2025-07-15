@@ -66,23 +66,30 @@ fn parse_number(input: String) -> Result<i64, std::num::ParseIntError> {
 // pipeline("https://huggingface.co/datasets/Narsil/asr_dummy/resolve/main/mlk.flac")
 // {'text': ' I have a dream that one day this nation will rise up and live out the true meaning of its creed.'}
 
-// calculate sentiment of a question (is the user happy or not)
-#[surrealism]
-fn js_support_agent_sentiment(question: String) -> Result<i64> {
-    let tokenizer = "mistral-7b-instruct-v0.1";
-    let model = "bert-base-uncased";
-    let tokenized = surrealism::ml::tokenize(tokenizer, question)?; // do we also pass weights?
-    surrealism::ml::invoke_model(model, tokenized, 100)
-}
+
+// // calculate sentiment of a question (is the user happy or not)
+// #[surrealism]
+// fn js_support_agent_sentiment(question: String) -> Result<i64> {
+//     let tokenizer = "mistral-7b-instruct-v0.1";
+//     let model = "bert-base-uncased";
+//     let tokenized = surrealism::ml::tokenize(tokenizer, question)?; // do we also pass weights?
+//     surrealism::ml::invoke_model(model, tokenized, 100)
+// }
+
+// // generate a response to a question
+// #[surrealism]
+// fn js_support_agent_response(question: String) -> Result<String> {
+//     let prompt = format!(
+//         "<system>You're a support agent whos an expert in javascript, give a good response to the user so that they dont churn in our product.</system><user>{question}</user>"
+//     );
+//     let model = "mistral-7b-instruct-v0.1";
+//     surrealism::ml::invoke_model(model, prompt, 100)
+// }
 
 // generate a response to a question
 #[surrealism]
-fn js_support_agent_response(question: String) -> Result<String> {
-    let prompt = format!(
-        "<system>You're a support agent whos an expert in javascript, give a good response to the user so that they dont churn in our product.</system><user>{question}</user>"
-    );
-    let model = "mistral-7b-instruct-v0.1";
-    surrealism::ml::invoke_model(model, prompt, 100)
+fn llm_question(question: String, model: String, token_count: i64, weight_dir: String) -> String {
+    surrealism::ml::invoke_model(model, question, token_count, weight_dir).unwrap()
 }
 
 #[surrealism]
