@@ -377,6 +377,9 @@ impl<'a> MemoryController for HostController<'a> {
     fn mut_mem(&mut self, ptr: u32, len: u32) -> &mut [u8] {
         let memory = self.get_export("memory").unwrap().into_memory().unwrap();
         let mem = memory.data_mut(&mut self.0);
+        if (ptr as usize) + (len as usize) > mem.len() {
+            println!("[ERROR] Out of bounds: ptr + len = {} > mem.len() = {}", (ptr as usize) + (len as usize), mem.len());
+        }
         &mut mem[(ptr as usize)..(ptr as usize) + (len as usize)]
     }
 }

@@ -1,5 +1,7 @@
 use anyhow::Result;
 use surrealism::surrealism;
+// use surrealism::types::value::Value;
+// use surrealism::types::number::Number;
 
 // use some_crate::weight;
 
@@ -89,7 +91,12 @@ fn parse_number(input: String) -> Result<i64, std::num::ParseIntError> {
 // generate a response to a question
 #[surrealism]
 fn llm_question(question: String, model: String, token_count: i64, weight_dir: String) -> String {
-    surrealism::ml::invoke_model(model, question, token_count, weight_dir).unwrap()
+    surrealism::ml::invoke_model(
+        model,
+        question,
+        token_count,
+        weight_dir
+    ).unwrap()
 }
 
 #[surrealism]

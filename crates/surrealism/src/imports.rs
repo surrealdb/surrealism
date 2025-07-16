@@ -266,7 +266,7 @@ pub mod ml {
     use surrealism_types::{string::Strand, value::Value};
 
     unsafe extern "C" {
-        unsafe fn __sr_ml_invoke_model(model_ptr: u32, input_ptr: u32, weight_ptr: u32, weight_dir: u32) -> i32;
+        unsafe fn __sr_ml_invoke_model(model_ptr: u32, input_ptr: u32, weight_ptr: u32, weight_dir_ptr: u32) -> i32;
         unsafe fn __sr_ml_tokenize(tokenizer_ptr: u32, input_ptr: u32) -> i32;
     }
 

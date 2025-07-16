@@ -84,7 +84,7 @@ impl Host for DemoHost {
     }
 
     // "google/gemma-7b"
-    fn ml_invoke_model(&self, model: String, input: sql::Value, weight_dir: sql::Value) -> Result<sql::Value> {
+    fn ml_invoke_model(&self, model: String, input: sql::Value, weight: i64, weight_dir: sql::Value) -> Result<sql::Value> {
         let sql::Value::Strand(input) = input else {
             anyhow::bail!("Expected string input")
         };
@@ -96,7 +96,7 @@ impl Host for DemoHost {
         // later and reference them.
         // let weight_path = "google--gemma-7b";
         let base = PathBuf::from(home).join(
-            format!(".cache/huggingface/hub/models--{}/snapshots", &weight_dir)
+            format!(".cache/huggingface/hub/models--{}/snapshots", &weight_dir).replace("'", "")
         );
         
         let snapshot = std::fs::read_dir(&base)
