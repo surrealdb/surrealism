@@ -25,3 +25,9 @@ surrealism-runtime = { path = "../surrealism-runtime" }
 tempfile.workspace = true
 walrus.workspace = true
 wasm-opt.workspace = true
+surrealml-llms.workspace = true
+surrealml-tokenizers.workspace = true
+candle-core.workspace = true
+
+[lints]
+workspace = true

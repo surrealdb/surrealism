@@ -68,7 +68,13 @@ pub trait Host: Send {
 
     fn kv(&mut self) -> &mut dyn KVStore;
 
-    fn ml_invoke_model(&self, model: String, input: sql::Value, weight: i64) -> Result<sql::Value>;
+    fn ml_invoke_model(
+        &self,
+        model: String,
+        input: sql::Value,
+        weight: i64,
+        weight_dir: String,
+    ) -> Result<sql::Value>;
     fn ml_tokenize(&self, model: String, input: sql::Value) -> Result<Vec<f64>>;
 
     /// Handle stdout output from the WASM module
@@ -157,28 +163,6 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
         controller
             .host()
             .run(fnc, version, args)?
-            .into_transferrable(&mut controller)
-    });
-
-    // ML invoke model function
-    #[rustfmt::skip]
-    register_host_function!(linker, "__sr_ml_invoke_model", |controller: HostController, model: Strand, input: Value, weight: i64| -> Result<Value> {
-        let model = String::from_transferrable(model, &mut controller)?;
-        let input = sql::Value::from_transferrable(input, &mut controller)?;
-        controller
-            .host()
-            .ml_invoke_model(model, input, weight)?
-            .into_transferrable(&mut controller)
-    });
-
-    // ML tokenize function
-    #[rustfmt::skip]
-    register_host_function!(linker, "__sr_ml_tokenize", |controller: HostController, model: Strand, input: Value| -> Result<TransferredArray<f64>> {
-        let model = String::from_transferrable(model, &mut controller)?;
-        let input = sql::Value::from_transferrable(input, &mut controller)?;
-        controller
-            .host()
-            .ml_tokenize(model, input)?
             .into_transferrable(&mut controller)
     });
 
@@ -274,6 +258,29 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
         controller.host_mut().kv().count(start, end)
     });
 
+    // ML invoke model function
+    #[rustfmt::skip]
+    register_host_function!(linker, "__sr_ml_invoke_model", |controller: HostController, model: Strand, input: Value, weight: i64, weight_dir: Strand| -> Result<Value> {
+        let model = String::from_transferrable(model, &mut controller)?;
+        let input = sql::Value::from_transferrable(input, &mut controller)?;
+        let weight_dir = String::from_transferrable(weight_dir, &mut controller)?;
+        controller
+            .host()
+            .ml_invoke_model(model, input, weight, weight_dir)?
+            .into_transferrable(&mut controller)
+    });
+
+    // ML tokenize function
+    #[rustfmt::skip]
+    register_host_function!(linker, "__sr_ml_tokenize", |controller: HostController, model: Strand, input: Value| -> Result<TransferredArray<f64>> {
+        let model = String::from_transferrable(model, &mut controller)?;
+        let input = sql::Value::from_transferrable(input, &mut controller)?;
+        controller
+            .host()
+            .ml_tokenize(model, input)?
+            .into_transferrable(&mut controller)
+    });
+
     // Custom stdout handler (WASI-compatible)
     // linker
     //     .func_wrap(
@@ -359,23 +366,51 @@ impl<'a> DerefMut for HostController<'a> {
 
 impl<'a> MemoryController for HostController<'a> {
     fn alloc(&mut self, len: u32, align: u32) -> Result<u32> {
-        let alloc_func = self.get_export("__sr_alloc").unwrap().into_func().unwrap();
+        let alloc_func = self
+            .get_export("__sr_alloc")
+            .ok_or_else(|| anyhow::anyhow!("Export __sr_alloc not found"))?
+            .into_func()
+            .ok_or_else(|| anyhow::anyhow!("Export __sr_alloc is not a function"))?;
         let result = alloc_func
-            .typed::<(u32, u32), u32>(&mut self.0)?
-            .call(&mut self.0, (len, align));
-        result
+            .typed::<(u32, u32), i32>(&mut self.0)?
+            .call(&mut self.0, (len, align))?;
+        if result == -1 {
+            anyhow::bail!("Memory allocation failed");
+        }
+        Ok(result as u32)
     }
 
     fn free(&mut self, ptr: u32, len: u32) -> Result<()> {
-        let free_func = self.get_export("__sr_free").unwrap().into_func().unwrap();
-        free_func
-            .typed::<(u32, u32), ()>(&mut self.0)?
-            .call(&mut self.0, (ptr, len))
+        let free_func = self
+            .get_export("__sr_free")
+            .ok_or_else(|| anyhow::anyhow!("Export __sr_free not found"))?
+            .into_func()
+            .ok_or_else(|| anyhow::anyhow!("Export __sr_free is not a function"))?;
+        let result = free_func
+            .typed::<(u32, u32), i32>(&mut self.0)?
+            .call(&mut self.0, (ptr, len))?;
+        if result == -1 {
+            anyhow::bail!("Memory deallocation failed");
+        }
+        Ok(())
     }
 
     fn mut_mem(&mut self, ptr: u32, len: u32) -> &mut [u8] {
-        let memory = self.get_export("memory").unwrap().into_memory().unwrap();
+        let memory = self
+            .get_export("memory")
+            .ok_or_else(|| anyhow::anyhow!("Export memory not found"))
+            .unwrap()
+            .into_memory()
+            .ok_or_else(|| anyhow::anyhow!("Export memory is not a memory"))
+            .unwrap();
         let mem = memory.data_mut(&mut self.0);
+        if (ptr as usize) + (len as usize) > mem.len() {
+            println!(
+                "[ERROR] Out of bounds: ptr + len = {} > mem.len() = {}",
+                (ptr as usize) + (len as usize),
+                mem.len()
+            );
+        }
         &mut mem[(ptr as usize)..(ptr as usize) + (len as usize)]
     }
 }

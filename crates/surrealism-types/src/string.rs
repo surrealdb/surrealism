@@ -1,6 +1,6 @@
 use super::{array::TransferredArray, convert::Transferrable, value::Value};
 use crate::controller::MemoryController;
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 #[derive(Debug, Clone)]
 #[repr(C)]
@@ -16,7 +16,7 @@ impl Transferrable<Strand> for String {
     fn from_transferrable(value: Strand, controller: &mut dyn MemoryController) -> Result<Self> {
         Ok(
             String::from_utf8(Vec::<u8>::from_transferrable(value.0, controller)?)
-                .expect("Found non UTF-8 characters while reconstructing string"),
+                .context("Found non UTF-8 characters while reconstructing string")?,
         )
     }
 }

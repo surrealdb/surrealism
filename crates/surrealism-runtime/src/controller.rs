@@ -75,15 +75,23 @@ impl Controller {
     pub fn alloc(&mut self, len: u32, align: u32) -> Result<u32> {
         let alloc = self
             .instance
-            .get_typed_func::<(u32, u32), u32>(&mut self.store, "__sr_alloc")?;
-        alloc.call(&mut self.store, (len, align))
+            .get_typed_func::<(u32, u32), i32>(&mut self.store, "__sr_alloc")?;
+        let result = alloc.call(&mut self.store, (len, align))?;
+        if result == -1 {
+            anyhow::bail!("Memory allocation failed");
+        }
+        Ok(result as u32)
     }
 
     pub fn free(&mut self, ptr: u32, len: u32) -> Result<()> {
-        let alloc = self
+        let free = self
             .instance
-            .get_typed_func::<(u32, u32), ()>(&mut self.store, "__sr_free")?;
-        alloc.call(&mut self.store, (ptr, len))
+            .get_typed_func::<(u32, u32), i32>(&mut self.store, "__sr_free")?;
+        let result = free.call(&mut self.store, (ptr, len))?;
+        if result == -1 {
+            anyhow::bail!("Memory deallocation failed");
+        }
+        Ok(())
     }
 
     pub fn init(&mut self) -> Result<()> {
