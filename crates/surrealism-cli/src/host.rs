@@ -1,19 +1,30 @@
 use anyhow::Result;
 use std::io::BufRead;
 use surrealdb::sql;
-use surrealism_runtime::host::Host;
+use surrealism_runtime::{
+    host::Host,
+    kv::{BTreeMapStore, KVStore},
+};
 
 use crate::parse_value;
 
-pub struct DemoHost {}
+pub struct DemoHost {
+    kv: BTreeMapStore,
+}
 
 impl DemoHost {
     pub fn boxed() -> Box<Self> {
-        Box::new(Self {})
+        Box::new(Self {
+            kv: BTreeMapStore::new(),
+        })
     }
 }
 
 impl Host for DemoHost {
+    fn kv(&mut self) -> &mut dyn KVStore {
+        &mut self.kv
+    }
+
     fn sql(&self, query: String, vars: sql::Object) -> Result<sql::Value> {
         println!("The module is running a SQL query:");
         println!("SQL: {query}");
@@ -119,6 +130,14 @@ impl Host for DemoHost {
             }
         }
     }
+
+    fn stdout(&self, output: &str) -> Result<()> {
+        println!("[surli::out] {}", output);
+        Ok(())
+    }
+
+    fn stderr(&self, output: &str) -> Result<()> {
+        eprintln!("[surli::err] {}", output);
+        Ok(())
+    }
 }
-
-

@@ -1,5 +1,3 @@
-
-
 use anyhow::Result;
 use surrealdb::sql;
 use surrealism_types::{
@@ -74,7 +72,188 @@ where
     Result::<R>::from_transferrable(result, &mut controller)?
 }
 
+pub mod kv {
+    use crate::Controller;
+    use anyhow::Result;
+    use std::ops::RangeBounds;
+    use surrealism_types::{
+        array::TransferredArray,
+        convert::{Transfer, Transferrable, TransferrableArray, Transferred},
+        object::KeyValuePair,
+        string::Strand,
+        utils::{COption, CRange, CResult},
+        value::Value,
+    };
 
+    unsafe extern "C" {
+        unsafe fn __sr_kv_get(key_ptr: u32) -> i32;
+        unsafe fn __sr_kv_set(key_ptr: u32, value_ptr: u32) -> i32;
+        unsafe fn __sr_kv_del(key_ptr: u32) -> i32;
+        unsafe fn __sr_kv_exists(key_ptr: u32) -> i32;
+
+        unsafe fn __sr_kv_del_rng(range_ptr: u32) -> i32;
+
+        unsafe fn __sr_kv_get_batch(keys_ptr: u32) -> i32;
+        unsafe fn __sr_kv_set_batch(entries_ptr: u32) -> i32;
+        unsafe fn __sr_kv_del_batch(keys_ptr: u32) -> i32;
+
+        unsafe fn __sr_kv_keys(range_ptr: u32) -> i32;
+        unsafe fn __sr_kv_values(range_ptr: u32) -> i32;
+        unsafe fn __sr_kv_entries(range_ptr: u32) -> i32;
+        unsafe fn __sr_kv_count(range_ptr: u32) -> i32;
+    }
+
+    pub fn get<K: Into<String>, R: Transferrable>(key: K) -> Result<Option<R>> {
+        let mut controller = Controller {};
+        let key = Transferrable::<Strand>::into_transferrable(key.into(), &mut controller)?
+            .transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_get(key.ptr()) };
+        let result = CResult::<COption<Value>>::receive(result.try_into()?, &mut controller)?;
+        Result::<Option<R>>::from_transferrable(result, &mut controller)?
+    }
+
+    pub fn set<K: Into<String>, V: Transferrable>(key: K, value: V) -> Result<()> {
+        let mut controller = Controller {};
+        let key = Transferrable::<Strand>::into_transferrable(key.into(), &mut controller)?
+            .transfer(&mut controller)?;
+        let value: Value = value.into_transferrable(&mut controller)?;
+        let value = value.transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_set(key.ptr(), value.ptr()) };
+        CResult::<()>::receive(result.try_into()?, &mut controller)?.try_ok(&mut controller)
+    }
+
+    pub fn del<K: Into<String>>(key: K) -> Result<()> {
+        let mut controller = Controller {};
+        let key = Transferrable::<Strand>::into_transferrable(key.into(), &mut controller)?
+            .transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_del(key.ptr()) };
+        CResult::<()>::receive(result.try_into()?, &mut controller)?;
+        Ok(())
+    }
+
+    pub fn exists<K: Into<String>>(key: K) -> Result<bool> {
+        let mut controller = Controller {};
+        let key = Transferrable::<Strand>::into_transferrable(key.into(), &mut controller)?
+            .transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_exists(key.ptr()) };
+        CResult::<bool>::receive(result.try_into()?, &mut controller)?.try_ok(&mut controller)
+    }
+
+    pub fn del_rng<R: RangeBounds<String>>(range: R) -> Result<()> {
+        let mut controller = Controller {};
+        let range = CRange::<Strand>::from_range_bounds(range, &mut controller)?
+            .transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_del_rng(range.ptr()) };
+        CResult::<()>::receive(result.try_into()?, &mut controller)?;
+        Ok(())
+    }
+
+    pub fn get_batch<K, I, R>(keys: I) -> Result<Vec<Option<R>>>
+    where
+        I: IntoIterator<Item = K>,
+        K: Into<String>,
+        R: Transferrable,
+    {
+        let mut controller = Controller {};
+        let keys: Transferred<TransferredArray<Strand>> = keys
+            .into_iter()
+            .map(|x| x.into())
+            .collect::<Vec<String>>()
+            .transfer_array(&mut controller)?
+            .transfer(&mut controller)?;
+
+        let result = unsafe { __sr_kv_get_batch(keys.ptr()) };
+        let result = CResult::<TransferredArray<COption<Value>>>::receive(
+            result.try_into()?,
+            &mut controller,
+        )?
+        .try_ok(&mut controller)?;
+        Vec::<Option<R>>::from_transferred_array(result, &mut controller)
+    }
+
+    pub fn set_batch<K, V, I>(entries: I) -> Result<()>
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Transferrable + Clone,
+    {
+        let mut controller = Controller {};
+        let entries: Vec<(String, V)> = entries
+            .into_iter()
+            .map(|(k, v)| (k.into(), v))
+            .collect::<Vec<_>>();
+        let entries = entries
+            .transfer_array(&mut controller)?
+            .transfer(&mut controller)?;
+
+        let result = unsafe { __sr_kv_set_batch(entries.ptr()) };
+        CResult::<()>::receive(result.try_into()?, &mut controller)?;
+        Ok(())
+    }
+
+    pub fn del_batch<K, I>(keys: I) -> Result<()>
+    where
+        I: IntoIterator<Item = K>,
+        K: Into<String>,
+    {
+        let mut controller = Controller {};
+        let keys: Transferred<TransferredArray<Strand>> = keys
+            .into_iter()
+            .map(|x| x.into())
+            .collect::<Vec<String>>()
+            .transfer_array(&mut controller)?
+            .transfer(&mut controller)?;
+
+        let result = unsafe { __sr_kv_del_batch(keys.ptr()) };
+        CResult::<()>::receive(result.try_into()?, &mut controller)?;
+        Ok(())
+    }
+
+    pub fn keys<R: RangeBounds<String>>(range: R) -> Result<Vec<String>> {
+        let mut controller = Controller {};
+        let range = CRange::<Strand>::from_range_bounds(range, &mut controller)?
+            .transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_keys(range.ptr()) };
+        let result =
+            CResult::<TransferredArray<Strand>>::receive(result.try_into()?, &mut controller)?
+                .try_ok(&mut controller)?;
+        Vec::<String>::from_transferred_array(result, &mut controller)
+    }
+
+    pub fn values<R: RangeBounds<String>, T: Transferrable + Clone>(range: R) -> Result<Vec<T>> {
+        let mut controller = Controller {};
+        let range = CRange::<Strand>::from_range_bounds(range, &mut controller)?
+            .transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_values(range.ptr()) };
+        let result =
+            CResult::<TransferredArray<Value>>::receive(result.try_into()?, &mut controller)?
+                .try_ok(&mut controller)?;
+        Vec::<T>::from_transferred_array(result, &mut controller)
+    }
+
+    pub fn entries<R: RangeBounds<String>, T: Transferrable + Clone>(
+        range: R,
+    ) -> Result<Vec<(String, T)>> {
+        let mut controller = Controller {};
+        let range = CRange::<Strand>::from_range_bounds(range, &mut controller)?
+            .transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_entries(range.ptr()) };
+        let result = CResult::<TransferredArray<KeyValuePair<T>>>::receive(
+            result.try_into()?,
+            &mut controller,
+        )?
+        .try_ok(&mut controller)?;
+        Vec::<(String, T)>::from_transferred_array(result, &mut controller)
+    }
+
+    pub fn count<R: RangeBounds<String>>(range: R) -> Result<u64> {
+        let mut controller = Controller {};
+        let range = CRange::<Strand>::from_range_bounds(range, &mut controller)?
+            .transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_count(range.ptr()) };
+        CResult::<u64>::receive(result.try_into()?, &mut controller)?.try_ok(&mut controller)
+    }
+}
 
 pub mod ml {
     use crate::Controller;

@@ -20,3 +20,7 @@ echo "Running 'result' function with argument false in 'demo.surli':"
 echo ""
 echo "Running 'result' function with argument true in 'demo.surli':"
 ./surrealism run --fnc result --arg true demo.surli
+
+echo ""
+echo "Running 'test_kv' function in 'demo.surli':"
+./surrealism run --fnc test_kv demo.surli

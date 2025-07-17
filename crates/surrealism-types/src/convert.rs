@@ -7,7 +7,7 @@ use super::{
     uuid::Uuid,
     value::{Number, Object, Value},
 };
-use crate::{controller::MemoryController, err::Error, kind::KindOf};
+use crate::{array::TransferredArray, controller::MemoryController, err::Error, kind::KindOf};
 use anyhow::Result;
 use std::marker::PhantomData;
 use surrealdb::sql;
@@ -447,5 +447,57 @@ impl Transferrable for sql::Thing {
         } else {
             Err(Error::UnexpectedType(value.kindof(), Kind::Record(vec![])).into())
         }
+    }
+}
+
+pub trait TransferrableArray<T, X>
+where
+    Self: Sized + IntoIterator<Item = T>,
+    T: Transferrable<X>,
+    X: Transfer + Clone,
+{
+    fn transfer_array(self, controller: &mut dyn MemoryController) -> Result<TransferredArray<X>>;
+
+    fn from_transferred_array(
+        value: TransferredArray<X>,
+        controller: &mut dyn MemoryController,
+    ) -> Result<Self>;
+}
+
+// impl<T, X> TransferrableArray<T, X> for Vec<T>
+// where
+//     T: Transferrable<X>,
+//     X: Transfer + Clone,
+// {
+//     fn transfer_array(self, controller: &mut dyn MemoryController) -> Result<TransferredArray<X>> {
+//         self.into_iter().map(|v| v.into_transferrable(controller)).collect::<Result<Vec<X>>>()?.into_transferrable(controller)
+//     }
+
+//     fn from_transferred_array(value: TransferredArray<X>, controller: &mut dyn MemoryController) -> Result<Self> {
+//         Vec::<X>::from_transferrable(value, controller)?.into_iter().map(|v| T::from_transferrable(v, controller)).collect::<Result<Vec<T>>>()
+//     }
+// }
+
+impl<T, X, I> TransferrableArray<T, X> for I
+where
+    T: Transferrable<X>,
+    X: Transfer + Clone,
+    I: IntoIterator<Item = T> + FromIterator<T>,
+{
+    fn transfer_array(self, controller: &mut dyn MemoryController) -> Result<TransferredArray<X>> {
+        self.into_iter()
+            .map(|v| v.into_transferrable(controller))
+            .collect::<Result<Vec<X>>>()?
+            .into_transferrable(controller)
+    }
+
+    fn from_transferred_array(
+        value: TransferredArray<X>,
+        controller: &mut dyn MemoryController,
+    ) -> Result<Self> {
+        Vec::<X>::from_transferrable(value, controller)?
+            .into_iter()
+            .map(|v| T::from_transferrable(v, controller))
+            .collect::<Result<Self>>()
     }
 }

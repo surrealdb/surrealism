@@ -1,3 +1,5 @@
+use std::ops::Bound;
+
 use crate::{
     controller::MemoryController,
     convert::{Transfer, Transferrable},
@@ -61,6 +63,17 @@ where
 pub enum CResult<T> {
     Ok(T),
     Err(Strand),
+}
+
+impl<T> CResult<T> {
+    pub fn try_ok(self, controller: &mut dyn MemoryController) -> Result<T> {
+        match self {
+            CResult::Ok(x) => Ok(x),
+            CResult::Err(e) => Err(anyhow::Error::msg(String::from_transferrable(
+                e, controller,
+            )?)),
+        }
+    }
 }
 
 impl<T> From<Result<T, Strand>> for CResult<T> {
@@ -169,5 +182,63 @@ where
                 anyhow::bail!(String::from_transferrable(e, controller)?)
             }
         }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Debug)]
+pub struct CRange<T> {
+    pub start: CBound<T>,
+    pub end: CBound<T>,
+}
+
+impl<X: Transfer> CRange<X> {
+    /// FYI: IntoBounds is unstable, so we're left with RangeBounds which causes this function to clone.
+    pub fn from_range_bounds<T: Transferrable<X> + Clone>(
+        range: impl std::ops::RangeBounds<T>,
+        controller: &mut dyn MemoryController,
+    ) -> Result<Self> {
+        Ok(CRange {
+            start: match range.start_bound() {
+                Bound::Included(x) => CBound::Included(x.clone().into_transferrable(controller)?),
+                Bound::Excluded(x) => CBound::Excluded(x.clone().into_transferrable(controller)?),
+                Bound::Unbounded => CBound::Unbounded,
+            },
+            end: match range.end_bound() {
+                Bound::Included(x) => CBound::Included(x.clone().into_transferrable(controller)?),
+                Bound::Excluded(x) => CBound::Excluded(x.clone().into_transferrable(controller)?),
+                Bound::Unbounded => CBound::Unbounded,
+            },
+        })
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Debug)]
+pub enum CBound<T> {
+    Excluded(T),
+    Included(T),
+    Unbounded,
+}
+
+impl<T, X> Transferrable<CBound<X>> for Bound<T>
+where
+    T: Transferrable<X>,
+    X: Transfer,
+{
+    fn into_transferrable(self, controller: &mut dyn MemoryController) -> Result<CBound<X>> {
+        Ok(match self {
+            Bound::Included(x) => CBound::Included(x.into_transferrable(controller)?),
+            Bound::Excluded(x) => CBound::Excluded(x.into_transferrable(controller)?),
+            Bound::Unbounded => CBound::Unbounded,
+        })
+    }
+
+    fn from_transferrable(value: CBound<X>, controller: &mut dyn MemoryController) -> Result<Self> {
+        Ok(match value {
+            CBound::Included(x) => Bound::Included(T::from_transferrable(x, controller)?),
+            CBound::Excluded(x) => Bound::Excluded(T::from_transferrable(x, controller)?),
+            CBound::Unbounded => Bound::Unbounded,
+        })
     }
 }
