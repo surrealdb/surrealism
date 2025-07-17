@@ -73,7 +73,7 @@ pub trait Host: Send {
         model: String,
         input: sql::Value,
         weight: i64,
-        weight_dir: sql::Value,
+        weight_dir: String,
     ) -> Result<sql::Value>;
     fn ml_tokenize(&self, model: String, input: sql::Value) -> Result<Vec<f64>>;
 
@@ -260,10 +260,10 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
 
     // ML invoke model function
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_ml_invoke_model", |controller: HostController, model: Strand, input: Value, weight: i64, weight_dir: Value| -> Result<Value> {
+    register_host_function!(linker, "__sr_ml_invoke_model", |controller: HostController, model: Strand, input: Value, weight: i64, weight_dir: Strand| -> Result<Value> {
         let model = String::from_transferrable(model, &mut controller)?;
         let input = sql::Value::from_transferrable(input, &mut controller)?;
-        let weight_dir = sql::Value::from_transferrable(weight_dir, &mut controller)?;
+        let weight_dir = String::from_transferrable(weight_dir, &mut controller)?;
         controller
             .host()
             .ml_invoke_model(model, input, weight, weight_dir)?

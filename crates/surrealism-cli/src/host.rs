@@ -88,12 +88,9 @@ impl Host for DemoHost {
         model: String,
         input: sql::Value,
         weight: i64,
-        weight_dir: sql::Value,
+        weight_dir: String,
     ) -> Result<sql::Value> {
         let sql::Value::Strand(input) = input else {
-            anyhow::bail!("Expected string input")
-        };
-        let sql::Value::Strand(weight_dir) = weight_dir else {
             anyhow::bail!("Expected string input")
         };
         let home = std::env::var("HOME")?;

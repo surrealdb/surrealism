@@ -275,13 +275,15 @@ pub mod ml {
         unsafe fn __sr_ml_tokenize(tokenizer_ptr: u32, input_ptr: u32) -> i32;
     }
 
-    pub fn invoke_model<M, I, R>(model: M, input: I, weight: i64, weight_dir: I) -> Result<R>
+    pub fn invoke_model<M, D, I, R>(model: M, input: I, weight: i64, weight_dir: D) -> Result<R>
     where
         M: Into<String>,
+        D: Into<String>,
         I: Transferrable<Value>,
         R: Transferrable<Value>,
     {
         let model = model.into();
+        let weight_dir = weight_dir.into();
         let mut controller = Controller {};
         let model = Transferrable::<Strand>::into_transferrable(model, &mut controller)?
             .transfer(&mut controller)?;
@@ -289,8 +291,7 @@ pub mod ml {
             .into_transferrable(&mut controller)?
             .transfer(&mut controller)?;
         let weight = weight.transfer(&mut controller)?;
-        let weight_dir = weight_dir
-            .into_transferrable(&mut controller)?
+        let weight_dir = Transferrable::<Strand>::into_transferrable(weight_dir, &mut controller)?
             .transfer(&mut controller)?;
 
         let result = unsafe {
