@@ -1467,16 +1467,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "directories-next"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "339ee130d97a610ea5a5872d2bbb130fdf68884ff09d3028b81bec8a1ac23bbc"
-dependencies = [
- "cfg-if",
- "dirs-sys-next",
-]
-
-[[package]]
 name = "dirs"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1974,28 +1964,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54614a3312934d066701a80f20f15fa3b56d67ac7722b39eea5b4c9dd1d66c94"
 dependencies = [
  "thread_local",
-]
-
-[[package]]
-name = "fxhash"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c31b6d751ae2c7f11320402d34e41349dd1016f8d5d45e48c4312bc8625af50c"
-dependencies = [
- "byteorder",
-]
-
-[[package]]
-name = "fxprof-processed-profile"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27d12c0aed7f1e24276a241aadc4cb8ea9f83000f34bc062b7cc2d51e3b0fabd"
-dependencies = [
- "bitflags 2.9.1",
- "debugid",
- "fxhash",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -2823,7 +2791,7 @@ version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b86e202f00093dcba4275d4636b93ef9dd75d025ae560d2521b45ea28ab49013"
 dependencies = [
- "bitflags",
+ "bitflags 2.9.1",
  "cfg-if",
  "libc",
 ]
@@ -5188,7 +5156,6 @@ dependencies = [
  "surrealism-types",
  "surrealml-llms",
  "surrealml-tokenizers",
- "tar",
  "tempfile",
  "thiserror 1.0.69",
  "walrus",
@@ -5258,6 +5225,7 @@ dependencies = [
 [[package]]
 name = "surrealml-llms"
 version = "0.1.0"
+source = "git+https://github.com/surrealdb/surrealml.git?branch=llm-integration#726062189493ca76ebf2c7a66df932380be2f937"
 dependencies = [
  "candle-core",
  "candle-nn",
@@ -5272,6 +5240,7 @@ dependencies = [
 [[package]]
 name = "surrealml-tokenizers"
 version = "0.1.0"
+source = "git+https://github.com/surrealdb/surrealml.git?branch=llm-integration#726062189493ca76ebf2c7a66df932380be2f937"
 dependencies = [
  "hf-hub",
  "serde",
@@ -6262,17 +6231,6 @@ dependencies = [
  "indexmap 2.9.0",
  "semver",
  "serde",
-]
-
-[[package]]
-name = "wasmparser"
-version = "0.234.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be22e5a8f600afce671dd53c8d2dd26b4b7aa810fd18ae27dfc49737f3e02fc5"
-dependencies = [
- "bitflags 2.9.1",
- "indexmap 2.9.0",
- "semver",
 ]
 
 [[package]]

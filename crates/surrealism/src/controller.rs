@@ -7,11 +7,18 @@ pub struct Controller {}
 
 impl MemoryController for Controller {
     fn alloc(&mut self, len: u32, align: u32) -> Result<u32> {
-        Ok(__sr_alloc(len, align))
+        let result = __sr_alloc(len, align);
+        if result == -1 {
+            anyhow::bail!("Memory allocation failed");
+        }
+        Ok(result as u32)
     }
 
     fn free(&mut self, ptr: u32, len: u32) -> Result<()> {
-        __sr_free(ptr, len);
+        let result = __sr_free(ptr, len);
+        if result == -1 {
+            anyhow::bail!("Memory deallocation failed");
+        }
         Ok(())
     }
 

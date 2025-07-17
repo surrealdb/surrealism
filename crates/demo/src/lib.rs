@@ -68,7 +68,6 @@ fn parse_number(input: String) -> Result<i64, std::num::ParseIntError> {
 // pipeline("https://huggingface.co/datasets/Narsil/asr_dummy/resolve/main/mlk.flac")
 // {'text': ' I have a dream that one day this nation will rise up and live out the true meaning of its creed.'}
 
-
 // // calculate sentiment of a question (is the user happy or not)
 // #[surrealism]
 // fn js_support_agent_sentiment(question: String) -> Result<i64> {
@@ -90,13 +89,13 @@ fn parse_number(input: String) -> Result<i64, std::num::ParseIntError> {
 
 // generate a response to a question
 #[surrealism]
-fn llm_question(question: String, model: String, token_count: i64, weight_dir: String) -> String {
-    surrealism::ml::invoke_model(
-        model,
-        question,
-        token_count,
-        weight_dir
-    ).unwrap()
+fn llm_question(
+    question: String,
+    model: String,
+    token_count: i64,
+    weight_dir: String,
+) -> Result<String> {
+    surrealism::ml::invoke_model(model, question, token_count, weight_dir)
 }
 
 #[surrealism]
