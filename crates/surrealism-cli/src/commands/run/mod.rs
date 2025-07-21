@@ -16,7 +16,7 @@ impl SurrealismCommand for RunCommand {
         let package = SurrealismPackage::from_file(self.file)?;
 
         // Load the WASM module
-        let host = DemoHost::boxed();
+        let host = DemoHost::new();
         let mut controller = surrealism_runtime::controller::Controller::new(package, host)
             .prefix_err(|| "Failed to load WASM module")?;
         controller.init()?;

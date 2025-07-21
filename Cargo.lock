@@ -5176,6 +5176,8 @@ name = "surrealism-runtime"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
+ "bytes",
  "semver",
  "serde",
  "serde_json",

@@ -14,7 +14,7 @@ impl SurrealismCommand for SigCommand {
             .prefix_err(|| "Failed to load Surrealism package")?;
 
         // Load the WASM module from memory
-        let host = DemoHost::boxed();
+        let host = DemoHost::new();
         let mut controller = surrealism_runtime::controller::Controller::new(package, host)
             .prefix_err(|| "Failed to load WASM module")?;
 

@@ -1,4 +1,5 @@
 use std::ops::{Bound, Deref, DerefMut};
+use std::sync::Arc;
 
 use anyhow::Result;
 use surrealdb::sql;
@@ -14,6 +15,8 @@ use surrealism_types::{
 };
 use wasmtime::{Caller, Linker};
 
+use crate::capabilities::SurrealismCapabilities;
+use crate::config::SurrealismConfig;
 use crate::{controller::StoreData, kv::KVStore};
 
 macro_rules! host_try_or_return {
@@ -57,25 +60,27 @@ macro_rules! register_host_function {
     }};
 }
 
-pub trait Host: Send {
-    fn sql(&self, query: String, vars: sql::Object) -> Result<sql::Value>;
+pub trait Host: Send + Sync {
+    fn sql(&self, config: &SurrealismConfig, query: String, vars: sql::Object) -> Result<sql::Value>;
     fn run(
         &self,
+        config: &SurrealismConfig,
         fnc: String,
         version: Option<String>,
         args: Vec<sql::Value>,
     ) -> Result<sql::Value>;
 
-    fn kv(&mut self) -> &mut dyn KVStore;
+    fn kv(&self) -> &dyn KVStore;
 
     fn ml_invoke_model(
         &self,
+        config: &SurrealismConfig,
         model: String,
         input: sql::Value,
         weight: i64,
         weight_dir: String,
     ) -> Result<sql::Value>;
-    fn ml_tokenize(&self, model: String, input: sql::Value) -> Result<Vec<f64>>;
+    fn ml_tokenize(&self, config: &SurrealismConfig, model: String, input: sql::Value) -> Result<Vec<f64>>;
 
     /// Handle stdout output from the WASM module
     ///
@@ -146,7 +151,7 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
         let vars = sql::Object::from_transferrable(vars, &mut controller)?;
         controller
             .host()
-            .sql(sql, vars)?
+            .sql(controller.config(), sql, vars)?
             .into_transferrable(&mut controller)
     });
 
@@ -162,7 +167,7 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
             .collect::<Result<Vec<sql::Value>>>()?;
         controller
             .host()
-            .run(fnc, version, args)?
+            .run(controller.config(), fnc, version, args)?
             .into_transferrable(&mut controller)
     });
 
@@ -171,7 +176,7 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
     register_host_function!(linker, "__sr_kv_get", |controller: HostController, key: Strand| -> Result<COption<Value>> {
         let key = String::from_transferrable(key, &mut controller)?;
         controller
-            .host_mut()
+            .host()
             .kv()
             .get(key)?
             .into_transferrable(&mut controller)
@@ -181,49 +186,49 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
     register_host_function!(linker, "__sr_kv_set", |controller: HostController, key: Strand, value: Value| -> Result<()> {
         let key = String::from_transferrable(key, &mut controller)?;
         let value = sql::Value::from_transferrable(value, &mut controller)?;
-        controller.host_mut().kv().set(key, value)?;
+        controller.host().kv().set(key, value)?;
         Ok(())
     });
 
     #[rustfmt::skip]
     register_host_function!(linker, "__sr_kv_del", |controller: HostController, key: Strand| -> Result<()> {
         let key = String::from_transferrable(key, &mut controller)?;
-        controller.host_mut().kv().del(key)?;
+        controller.host().kv().del(key)?;
         Ok(())
     });
 
     #[rustfmt::skip]
     register_host_function!(linker, "__sr_kv_exists", |controller: HostController, key: Strand| -> Result<bool> {
         let key = String::from_transferrable(key, &mut controller)?;
-        controller.host_mut().kv().exists(key)
+        controller.host().kv().exists(key)
     });
 
     #[rustfmt::skip]
     register_host_function!(linker, "__sr_kv_del_rng", |controller: HostController, range: CRange<Strand>| -> Result<()> {
         let start = Bound::<String>::from_transferrable(range.start, &mut controller)?;
         let end = Bound::<String>::from_transferrable(range.end, &mut controller)?;
-        controller.host_mut().kv().del_rng(start, end)?;
+        controller.host().kv().del_rng(start, end)?;
         Ok(())
     });
 
     #[rustfmt::skip]
     register_host_function!(linker, "__sr_kv_get_batch", |controller: HostController, keys: TransferredArray<Strand>| -> Result<TransferredArray<COption<Value>>> {
         let keys = Vec::<String>::from_transferred_array(keys, &mut controller)?;
-        let values = controller.host_mut().kv().get_batch(keys)?;
+        let values = controller.host().kv().get_batch(keys)?;
         values.transfer_array(&mut controller)
     });
 
     #[rustfmt::skip]
     register_host_function!(linker, "__sr_kv_set_batch", |controller: HostController, entries: TransferredArray<KeyValuePair>| -> Result<()> {
         let entries = Vec::<(String, sql::Value)>::from_transferred_array(entries, &mut controller)?;
-        controller.host_mut().kv().set_batch(entries)?;
+        controller.host().kv().set_batch(entries)?;
         Ok(())
     });
 
     #[rustfmt::skip]
     register_host_function!(linker, "__sr_kv_del_batch", |controller: HostController, keys: TransferredArray<Strand>| -> Result<()> {
         let keys = Vec::<String>::from_transferred_array(keys, &mut controller)?;
-        controller.host_mut().kv().del_batch(keys)?;
+        controller.host().kv().del_batch(keys)?;
         Ok(())
     });
 
@@ -231,7 +236,7 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
     register_host_function!(linker, "__sr_kv_keys", |controller: HostController, range: CRange<Strand>| -> Result<TransferredArray<Strand>> {
         let start = Bound::<String>::from_transferrable(range.start, &mut controller)?;
         let end = Bound::<String>::from_transferrable(range.end, &mut controller)?;
-        let keys = controller.host_mut().kv().keys(start, end)?;
+        let keys = controller.host().kv().keys(start, end)?;
         keys.transfer_array(&mut controller)
     });
 
@@ -239,7 +244,7 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
     register_host_function!(linker, "__sr_kv_values", |controller: HostController, range: CRange<Strand>| -> Result<TransferredArray<Value>> {
         let start = Bound::<String>::from_transferrable(range.start, &mut controller)?;
         let end = Bound::<String>::from_transferrable(range.end, &mut controller)?;
-        let values = controller.host_mut().kv().values(start, end)?;
+        let values = controller.host().kv().values(start, end)?;
         values.transfer_array(&mut controller)
     });
 
@@ -247,7 +252,7 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
     register_host_function!(linker, "__sr_kv_entries", |controller: HostController, range: CRange<Strand>| -> Result<TransferredArray<KeyValuePair>> {
         let start = Bound::<String>::from_transferrable(range.start, &mut controller)?;
         let end = Bound::<String>::from_transferrable(range.end, &mut controller)?;
-        let entries = controller.host_mut().kv().entries(start, end)?;
+        let entries = controller.host().kv().entries(start, end)?;
         entries.transfer_array(&mut controller)
     });
 
@@ -255,7 +260,7 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
     register_host_function!(linker, "__sr_kv_count", |controller: HostController, range: CRange<Strand>| -> Result<u64> {
         let start = Bound::<String>::from_transferrable(range.start, &mut controller)?;
         let end = Bound::<String>::from_transferrable(range.end, &mut controller)?;
-        controller.host_mut().kv().count(start, end)
+        controller.host().kv().count(start, end)
     });
 
     // ML invoke model function
@@ -266,7 +271,7 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
         let weight_dir = String::from_transferrable(weight_dir, &mut controller)?;
         controller
             .host()
-            .ml_invoke_model(model, input, weight, weight_dir)?
+            .ml_invoke_model(controller.config(), model, input, weight, weight_dir)?
             .into_transferrable(&mut controller)
     });
 
@@ -277,7 +282,7 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
         let input = sql::Value::from_transferrable(input, &mut controller)?;
         controller
             .host()
-            .ml_tokenize(model, input)?
+            .ml_tokenize(controller.config(), model, input)?
             .into_transferrable(&mut controller)
     });
 
@@ -336,12 +341,12 @@ pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
 struct HostController<'a>(Caller<'a, StoreData>);
 
 impl<'a> HostController<'a> {
-    pub fn host(&self) -> &Box<dyn Host> {
+    pub fn host(&self) -> &Arc<dyn Host> {
         &self.0.data().host
     }
 
-    pub fn host_mut(&mut self) -> &mut Box<dyn Host> {
-        &mut self.0.data_mut().host
+    pub fn config(&self) -> &SurrealismConfig {
+        &self.0.data().config
     }
 }
 

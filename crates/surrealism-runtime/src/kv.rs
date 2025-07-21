@@ -8,15 +8,15 @@ use std::ops::Bound;
 
 pub trait KVStore: Send {
     fn get(&self, key: String) -> Result<Option<sql::Value>>;
-    fn set(&mut self, key: String, value: sql::Value) -> Result<()>;
-    fn del(&mut self, key: String) -> Result<()>;
+    fn set(&self, key: String, value: sql::Value) -> Result<()>;
+    fn del(&self, key: String) -> Result<()>;
     fn exists(&self, key: String) -> Result<bool>;
 
-    fn del_rng(&mut self, start: Bound<String>, end: Bound<String>) -> Result<()>;
+    fn del_rng(&self, start: Bound<String>, end: Bound<String>) -> Result<()>;
 
     fn get_batch(&self, keys: Vec<String>) -> Result<Vec<Option<sql::Value>>>;
-    fn set_batch(&mut self, entries: Vec<(String, sql::Value)>) -> Result<()>;
-    fn del_batch(&mut self, keys: Vec<String>) -> Result<()>;
+    fn set_batch(&self, entries: Vec<(String, sql::Value)>) -> Result<()>;
+    fn del_batch(&self, keys: Vec<String>) -> Result<()>;
 
     fn keys(&self, start: Bound<String>, end: Bound<String>) -> Result<Vec<String>>;
     fn values(&self, start: Bound<String>, end: Bound<String>) -> Result<Vec<sql::Value>>;
@@ -97,7 +97,7 @@ impl KVStore for BTreeMapStore {
         Ok(map.get(&key).cloned())
     }
 
-    fn set(&mut self, key: String, value: sql::Value) -> Result<()> {
+    fn set(&self, key: String, value: sql::Value) -> Result<()> {
         let mut map = self
             .inner
             .write()
@@ -106,7 +106,7 @@ impl KVStore for BTreeMapStore {
         Ok(())
     }
 
-    fn del(&mut self, key: String) -> Result<()> {
+    fn del(&self, key: String) -> Result<()> {
         let mut map = self.inner.write().map_err(|_| {
             anyhow::anyhow!("Failed to delete from KV store: Could not acquire lock")
         })?;
@@ -121,7 +121,7 @@ impl KVStore for BTreeMapStore {
         Ok(map.contains_key(&key))
     }
 
-    fn del_rng(&mut self, start: Bound<String>, end: Bound<String>) -> Result<()> {
+    fn del_rng(&self, start: Bound<String>, end: Bound<String>) -> Result<()> {
         let mut map = self.inner.write().map_err(|_| {
             anyhow::anyhow!("Failed to delete range from KV store: Could not acquire lock")
         })?;
@@ -147,7 +147,7 @@ impl KVStore for BTreeMapStore {
         Ok(results)
     }
 
-    fn set_batch(&mut self, entries: Vec<(String, sql::Value)>) -> Result<()> {
+    fn set_batch(&self, entries: Vec<(String, sql::Value)>) -> Result<()> {
         let mut map = self.inner.write().map_err(|_| {
             anyhow::anyhow!("Failed to set batch in KV store: Could not acquire lock")
         })?;
@@ -157,7 +157,7 @@ impl KVStore for BTreeMapStore {
         Ok(())
     }
 
-    fn del_batch(&mut self, keys: Vec<String>) -> Result<()> {
+    fn del_batch(&self, keys: Vec<String>) -> Result<()> {
         let mut map = self.inner.write().map_err(|_| {
             anyhow::anyhow!("Failed to delete batch from KV store: Could not acquire lock")
         })?;

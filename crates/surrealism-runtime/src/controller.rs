@@ -1,7 +1,5 @@
 use crate::{
-    config::SurrealismConfig,
-    host::{implement_host_functions, Host},
-    package::SurrealismPackage,
+    capabilities::SurrealismCapabilities, config::SurrealismConfig, host::{implement_host_functions, Host}, package::SurrealismPackage
 };
 use anyhow::Result;
 use surrealdb::sql;
@@ -16,25 +14,25 @@ use surrealism_types::{
     value::Value,
 };
 use wasmtime::*;
-use wasmtime_wasi::p2::WasiCtxBuilder;
 use wasmtime_wasi::preview1::{self, WasiP1Ctx};
+use std::sync::Arc;
 
 pub struct StoreData {
     pub wasi: WasiP1Ctx,
-    pub host: Box<dyn Host>,
+    pub host: Arc<dyn Host>,
+    pub config: SurrealismConfig,
 }
 
 pub struct Controller {
     pub store: Store<StoreData>,
     pub instance: Instance,
     pub memory: Memory,
-    pub config: SurrealismConfig,
 }
 
 impl Controller {
     pub fn new(
         SurrealismPackage { wasm, config }: SurrealismPackage,
-        host: Box<dyn Host>,
+        host: Arc<dyn Host>,
     ) -> Result<Self> {
         let engine = Engine::default();
         let module =
@@ -47,14 +45,12 @@ impl Controller {
         implement_host_functions(&mut linker)
             .prefix_err(|| "failed to implement host functions")?;
 
-        let wasi_ctx = WasiCtxBuilder::new()
-            .inherit_stdio()
-            .inherit_env()
-            .build_p1();
+        let wasi_ctx = super::wasi_context::build(host.clone())?;
 
         let store_data = StoreData {
             wasi: wasi_ctx,
             host,
+            config,
         };
         let mut store = Store::new(&engine, store_data);
         let instance = linker
@@ -68,7 +64,6 @@ impl Controller {
             store,
             instance,
             memory,
-            config,
         })
     }
 

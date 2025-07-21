@@ -3,10 +3,14 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use surrealism_types::err::PrefixError;
 
+use crate::capabilities::SurrealismCapabilities;
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SurrealismConfig {
     #[serde(rename = "package")]
     pub meta: SurrealismMeta,
+    #[serde(default)]
+    pub capabilities: SurrealismCapabilities,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

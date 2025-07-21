@@ -220,3 +220,10 @@ fn test_kv() -> Result<()> {
 
     Ok(())
 }
+
+#[surrealism]
+fn test_io() -> Result<String> {
+    println!("This is a test message to stdout");
+    eprintln!("This is a test message to stderr");
+    Ok("I/O test completed".to_string())
+}

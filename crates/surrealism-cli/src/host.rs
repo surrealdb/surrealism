@@ -1,9 +1,10 @@
 use anyhow::{Context, Result};
 use candle_core::DType;
-use std::io::BufRead;
+use std::{io::BufRead, sync::Arc};
 use std::path::PathBuf;
 use surrealdb::sql;
 use surrealism_runtime::{
+    config::SurrealismConfig,
     host::Host,
     kv::{BTreeMapStore, KVStore},
 };
@@ -19,19 +20,19 @@ pub struct DemoHost {
 }
 
 impl DemoHost {
-    pub fn boxed() -> Box<Self> {
-        Box::new(Self {
+    pub fn new() -> Arc<Self> {
+        Arc::new(Self {
             kv: BTreeMapStore::new(),
         })
     }
 }
 
 impl Host for DemoHost {
-    fn kv(&mut self) -> &mut dyn KVStore {
-        &mut self.kv
+    fn kv(&self) -> &dyn KVStore {
+        &self.kv
     }
 
-    fn sql(&self, query: String, vars: sql::Object) -> Result<sql::Value> {
+    fn sql(&self, _config: &SurrealismConfig, query: String, vars: sql::Object) -> Result<sql::Value> {
         println!("The module is running a SQL query:");
         println!("SQL: {query}");
         println!("Vars: {vars:#}");
@@ -53,6 +54,7 @@ impl Host for DemoHost {
 
     fn run(
         &self,
+        _config: &SurrealismConfig,
         fnc: String,
         version: Option<String>,
         args: Vec<sql::Value>,
@@ -85,6 +87,7 @@ impl Host for DemoHost {
     // "google/gemma-7b"
     fn ml_invoke_model(
         &self,
+        _config: &SurrealismConfig,
         model: String,
         input: sql::Value,
         weight: i64,
@@ -116,7 +119,7 @@ impl Host for DemoHost {
             .into())
     }
 
-    fn ml_tokenize(&self, model: String, input: sql::Value) -> Result<Vec<f64>> {
+    fn ml_tokenize(&self, _config: &SurrealismConfig, model: String, input: sql::Value) -> Result<Vec<f64>> {
         println!("The module is running a ML tokenizer:");
         println!("Model: {model}");
         println!("Input: {input:}");
