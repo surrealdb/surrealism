@@ -1,12 +1,7 @@
 use anyhow::Result;
-use surrealdb::sql;
+use surrealdb::expr;
 use surrealism_types::{
-    args::Args,
-    convert::{Transfer, Transferrable},
-    object::KeyValuePair,
-    string::Strand,
-    utils::{COption, CResult},
-    value::Value,
+    arg::{Arg, SerializableArg}, args::Args, transfer::Transfer
 };
 
 use crate::Controller;
@@ -52,9 +47,9 @@ unsafe extern "C" {
 pub fn sql<S, R>(sql: S) -> Result<R>
 where
     S: Into<String>,
-    R: Transferrable<Value>,
+    R: Arg,
 {
-    sql_with_vars(sql, Vec::<(String, sql::Value)>::new())
+    sql_with_vars(sql, expr::Object::default())
 }
 
 /// Executes a SurrealDB SQL query with optional variables.
@@ -83,8 +78,8 @@ where
 pub fn sql_with_vars<S, V, R>(sql: S, vars: V) -> Result<R>
 where
     S: Into<String>,
-    V: IntoIterator<Item = (String, sql::Value)>,
-    R: Transferrable<Value>,
+    V: IntoIterator<Item = (String, expr::Value)>,
+    R: Arg,
 {
     let sql = sql.into();
     if sql.trim().is_empty() {
@@ -92,19 +87,11 @@ where
     }
 
     let mut controller = Controller {};
-    let sql = Transferrable::<Strand>::into_transferrable(sql, &mut controller)?
-        .transfer(&mut controller)?;
+    let sql = sql.transfer(&mut controller)?;
+    let vars = vars.into_iter().collect::<Vec<_>>().transfer(&mut controller)?;
 
-    let vars = vars
-        .into_iter()
-        .map(|x| x.into_transferrable(&mut controller))
-        .collect::<Result<Vec<KeyValuePair>>>()?
-        .into_transferrable(&mut controller)?
-        .transfer(&mut controller)?;
-
-    let result = unsafe { __sr_sql(sql.ptr(), vars.ptr()) };
-    let result = CResult::<Value>::receive(result.try_into()?, &mut controller)?;
-    Result::<R>::from_transferrable(result, &mut controller)?
+    let result = unsafe { __sr_sql(*sql, *vars) };
+    Result::<SerializableArg<R>>::receive(result.try_into()?, &mut controller)?.map(|x| x.0)
 }
 
 /// Runs a named function in the SurrealDB runtime with optional version and arguments.
@@ -134,21 +121,16 @@ pub fn run<F, A, R>(fnc: F, version: Option<String>, args: A) -> Result<R>
 where
     F: Into<String>,
     A: Args,
-    R: Transferrable<Value>,
+    R: Arg,
 {
     let fnc = fnc.into();
     let mut controller = Controller {};
-    let fnc = Transferrable::<Strand>::into_transferrable(fnc, &mut controller)?
-        .transfer(&mut controller)?;
+    let fnc = fnc.transfer(&mut controller)?;
+    let version = version.transfer(&mut controller)?;
+    let args = args.to_values().transfer(&mut controller)?;
 
-    let version = Transferrable::<COption<Strand>>::into_transferrable(version, &mut controller)?
-        .transfer(&mut controller)?;
-
-    let args = args.transfer_args(&mut controller)?;
-
-    let result = unsafe { __sr_run(fnc.ptr(), version.ptr(), args.ptr()) };
-    let result = CResult::<Value>::receive(result.try_into()?, &mut controller)?;
-    Result::<R>::from_transferrable(result, &mut controller)?
+    let result = unsafe { __sr_run(*fnc, *version, *args) };
+    Result::<SerializableArg<R>>::receive(result.try_into()?, &mut controller)?.map(|x| x.0)
 }
 
 /// Module containing key-value store operations.
@@ -162,12 +144,9 @@ pub mod kv {
     use anyhow::Result;
     use std::ops::RangeBounds;
     use surrealism_types::{
-        array::TransferredArray,
-        convert::{Transfer, Transferrable, TransferrableArray, Transferred},
-        object::KeyValuePair,
-        string::Strand,
-        utils::{COption, CRange, CResult},
-        value::Value,
+        arg::{Arg, SerializableArg},
+        serialize::{Serializable, SerializableRange},
+        transfer::Transfer,
     };
 
     // Declares external C functions for key-value store operations.
@@ -228,13 +207,12 @@ pub mod kv {
     /// - If transferring data fails.
     /// - If the FFI call or result reception encounters an issue.
     /// - If deserializing the result into `R` fails.
-    pub fn get<K: Into<String>, R: Transferrable>(key: K) -> Result<Option<R>> {
+    pub fn get<K: Into<String>, R: Arg>(key: K) -> Result<Option<R>> {
         let mut controller = Controller {};
-        let key = Transferrable::<Strand>::into_transferrable(key.into(), &mut controller)?
-            .transfer(&mut controller)?;
-        let result = unsafe { __sr_kv_get(key.ptr()) };
-        let result = CResult::<COption<Value>>::receive(result.try_into()?, &mut controller)?;
-        Result::<Option<R>>::from_transferrable(result, &mut controller)?
+        let key = key.into().transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_get(*key) };
+        Result::<Option<SerializableArg<R>>>::receive(result.try_into()?, &mut controller)?
+            .map(|x| x.map(|x| x.0))
     }
 
     /// Sets a value in the key-value store for the specified key.
@@ -256,14 +234,12 @@ pub mod kv {
     /// # Errors
     /// - If transferring data fails.
     /// - If the FFI call or result reception encounters an issue.
-    pub fn set<K: Into<String>, V: Transferrable>(key: K, value: V) -> Result<()> {
+    pub fn set<K: Into<String>, V: Arg>(key: K, value: V) -> Result<()> {
         let mut controller = Controller {};
-        let key = Transferrable::<Strand>::into_transferrable(key.into(), &mut controller)?
-            .transfer(&mut controller)?;
-        let value: Value = value.into_transferrable(&mut controller)?;
-        let value = value.transfer(&mut controller)?;
-        let result = unsafe { __sr_kv_set(key.ptr(), value.ptr()) };
-        CResult::<()>::receive(result.try_into()?, &mut controller)?.try_ok(&mut controller)
+        let key = key.into().transfer(&mut controller)?;
+        let value = value.to_serializable().transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_set(*key, *value) };
+        Result::<()>::receive(result.try_into()?, &mut controller)?
     }
 
     /// Deletes a key-value pair from the store by key.
@@ -285,11 +261,9 @@ pub mod kv {
     /// - If the FFI call or result reception encounters an issue.
     pub fn del<K: Into<String>>(key: K) -> Result<()> {
         let mut controller = Controller {};
-        let key = Transferrable::<Strand>::into_transferrable(key.into(), &mut controller)?
-            .transfer(&mut controller)?;
-        let result = unsafe { __sr_kv_del(key.ptr()) };
-        CResult::<()>::receive(result.try_into()?, &mut controller)?;
-        Ok(())
+        let key = key.into().transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_del(*key) };
+        Result::<()>::receive(result.try_into()?, &mut controller)?
     }
 
     /// Checks if a key exists in the key-value store.
@@ -312,10 +286,9 @@ pub mod kv {
     /// - If the FFI call or result reception encounters an issue.
     pub fn exists<K: Into<String>>(key: K) -> Result<bool> {
         let mut controller = Controller {};
-        let key = Transferrable::<Strand>::into_transferrable(key.into(), &mut controller)?
-            .transfer(&mut controller)?;
-        let result = unsafe { __sr_kv_exists(key.ptr()) };
-        CResult::<bool>::receive(result.try_into()?, &mut controller)?.try_ok(&mut controller)
+        let key = key.into().transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_exists(*key) };
+        Result::<bool>::receive(result.try_into()?, &mut controller)?
     }
 
     /// Deletes all key-value pairs within a specified range.
@@ -337,11 +310,9 @@ pub mod kv {
     /// - If the FFI call or result reception encounters an issue.
     pub fn del_rng<R: RangeBounds<String>>(range: R) -> Result<()> {
         let mut controller = Controller {};
-        let range = CRange::<Strand>::from_range_bounds(range, &mut controller)?
-            .transfer(&mut controller)?;
-        let result = unsafe { __sr_kv_del_rng(range.ptr()) };
-        CResult::<()>::receive(result.try_into()?, &mut controller)?;
-        Ok(())
+        let range = SerializableRange::from_range_bounds(range)?.transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_del_rng(*range) };
+        Result::<()>::receive(result.try_into()?, &mut controller)?
     }
 
     /// Retrieves multiple values from the key-value store in a single operation.
@@ -370,23 +341,18 @@ pub mod kv {
     where
         I: IntoIterator<Item = K>,
         K: Into<String>,
-        R: Transferrable,
+        R: Arg,
     {
         let mut controller = Controller {};
-        let keys: Transferred<TransferredArray<Strand>> = keys
+        let keys = keys
             .into_iter()
             .map(|x| x.into())
             .collect::<Vec<String>>()
-            .transfer_array(&mut controller)?
             .transfer(&mut controller)?;
 
-        let result = unsafe { __sr_kv_get_batch(keys.ptr()) };
-        let result = CResult::<TransferredArray<COption<Value>>>::receive(
-            result.try_into()?,
-            &mut controller,
-        )?
-        .try_ok(&mut controller)?;
-        Vec::<Option<R>>::from_transferred_array(result, &mut controller)
+        let result = unsafe { __sr_kv_get_batch(*keys) };
+        Result::<Vec<Option<SerializableArg<R>>>>::receive(result.try_into()?, &mut controller)?
+            .map(|x| x.into_iter().map(|x| x.map(|x| x.0)).collect())
     }
 
     /// Sets multiple key-value pairs in the store in a single operation.
@@ -412,20 +378,17 @@ pub mod kv {
     where
         I: IntoIterator<Item = (K, V)>,
         K: Into<String>,
-        V: Transferrable + Clone,
+        V: Arg,
     {
         let mut controller = Controller {};
-        let entries: Vec<(String, V)> = entries
+        let entries: Vec<(String, SerializableArg<V>)> = entries
             .into_iter()
-            .map(|(k, v)| (k.into(), v))
+            .map(|(k, v)| (k.into(), SerializableArg(v)))
             .collect::<Vec<_>>();
-        let entries = entries
-            .transfer_array(&mut controller)?
-            .transfer(&mut controller)?;
+        let entries = entries.transfer(&mut controller)?;
 
-        let result = unsafe { __sr_kv_set_batch(entries.ptr()) };
-        CResult::<()>::receive(result.try_into()?, &mut controller)?;
-        Ok(())
+        let result = unsafe { __sr_kv_set_batch(*entries) };
+        Result::<()>::receive(result.try_into()?, &mut controller)?
     }
 
     /// Deletes multiple key-value pairs from the store in a single operation.
@@ -452,16 +415,14 @@ pub mod kv {
         K: Into<String>,
     {
         let mut controller = Controller {};
-        let keys: Transferred<TransferredArray<Strand>> = keys
+        let keys = keys
             .into_iter()
             .map(|x| x.into())
             .collect::<Vec<String>>()
-            .transfer_array(&mut controller)?
             .transfer(&mut controller)?;
 
-        let result = unsafe { __sr_kv_del_batch(keys.ptr()) };
-        CResult::<()>::receive(result.try_into()?, &mut controller)?;
-        Ok(())
+        let result = unsafe { __sr_kv_del_batch(*keys) };
+        Result::<()>::receive(result.try_into()?, &mut controller)?
     }
 
     /// Retrieves all keys within a specified range.
@@ -484,13 +445,9 @@ pub mod kv {
     /// - If the FFI call or result reception encounters an issue.
     pub fn keys<R: RangeBounds<String>>(range: R) -> Result<Vec<String>> {
         let mut controller = Controller {};
-        let range = CRange::<Strand>::from_range_bounds(range, &mut controller)?
-            .transfer(&mut controller)?;
-        let result = unsafe { __sr_kv_keys(range.ptr()) };
-        let result =
-            CResult::<TransferredArray<Strand>>::receive(result.try_into()?, &mut controller)?
-                .try_ok(&mut controller)?;
-        Vec::<String>::from_transferred_array(result, &mut controller)
+        let range = SerializableRange::from_range_bounds(range)?.transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_keys(*range) };
+        Result::<Vec<String>>::receive(result.try_into()?, &mut controller)?
     }
 
     /// Retrieves all values within a specified key range.
@@ -514,15 +471,12 @@ pub mod kv {
     /// - If transferring data fails.
     /// - If the FFI call or result reception encounters an issue.
     /// - If deserializing any result into `T` fails.
-    pub fn values<R: RangeBounds<String>, T: Transferrable + Clone>(range: R) -> Result<Vec<T>> {
+    pub fn values<R: RangeBounds<String>, T: Arg>(range: R) -> Result<Vec<T>> {
         let mut controller = Controller {};
-        let range = CRange::<Strand>::from_range_bounds(range, &mut controller)?
-            .transfer(&mut controller)?;
-        let result = unsafe { __sr_kv_values(range.ptr()) };
-        let result =
-            CResult::<TransferredArray<Value>>::receive(result.try_into()?, &mut controller)?
-                .try_ok(&mut controller)?;
-        Vec::<T>::from_transferred_array(result, &mut controller)
+        let range = SerializableRange::from_range_bounds(range)?.transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_values(*range) };
+        Result::<Vec<SerializableArg<T>>>::receive(result.try_into()?, &mut controller)?
+            .map(|x| x.into_iter().map(|x| x.0).collect())
     }
 
     /// Retrieves all key-value pairs within a specified key range.
@@ -546,19 +500,14 @@ pub mod kv {
     /// - If transferring data fails.
     /// - If the FFI call or result reception encounters an issue.
     /// - If deserializing any result into `T` fails.
-    pub fn entries<R: RangeBounds<String>, T: Transferrable + Clone>(
+    pub fn entries<R: RangeBounds<String>, T: Arg>(
         range: R,
     ) -> Result<Vec<(String, T)>> {
         let mut controller = Controller {};
-        let range = CRange::<Strand>::from_range_bounds(range, &mut controller)?
-            .transfer(&mut controller)?;
-        let result = unsafe { __sr_kv_entries(range.ptr()) };
-        let result = CResult::<TransferredArray<KeyValuePair<T>>>::receive(
-            result.try_into()?,
-            &mut controller,
-        )?
-        .try_ok(&mut controller)?;
-        Vec::<(String, T)>::from_transferred_array(result, &mut controller)
+        let range = SerializableRange::from_range_bounds(range)?.transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_entries(*range) };
+        Result::<Vec<(String, SerializableArg<T>)>>::receive(result.try_into()?, &mut controller)?
+            .map(|x| x.into_iter().map(|x| (x.0, x.1.0)).collect())
     }
 
     /// Counts the number of key-value pairs within a specified key range.
@@ -581,10 +530,9 @@ pub mod kv {
     /// - If the FFI call or result reception encounters an issue.
     pub fn count<R: RangeBounds<String>>(range: R) -> Result<u64> {
         let mut controller = Controller {};
-        let range = CRange::<Strand>::from_range_bounds(range, &mut controller)?
-            .transfer(&mut controller)?;
-        let result = unsafe { __sr_kv_count(range.ptr()) };
-        CResult::<u64>::receive(result.try_into()?, &mut controller)?.try_ok(&mut controller)
+        let range = SerializableRange::from_range_bounds(range)?.transfer(&mut controller)?;
+        let result = unsafe { __sr_kv_count(*range) };
+        Result::<u64>::receive(result.try_into()?, &mut controller)?
     }
 }
 
@@ -596,11 +544,9 @@ pub mod ml {
     use crate::Controller;
     use anyhow::Result;
     use surrealism_types::{
-        array::TransferredArray,
-        convert::{Transfer, Transferrable},
-        utils::CResult,
+        arg::{Arg, SerializableArg},
+        transfer::Transfer,
     };
-    use surrealism_types::{string::Strand, value::Value};
 
     // Declares external C functions for ML operations.
     //
@@ -648,26 +594,19 @@ pub mod ml {
     where
         M: Into<String>,
         D: Into<String>,
-        I: Transferrable<Value>,
-        R: Transferrable<Value>,
+        I: Arg,
+        R: Arg,
     {
-        let model = model.into();
-        let weight_dir = weight_dir.into();
         let mut controller = Controller {};
-        let model = Transferrable::<Strand>::into_transferrable(model, &mut controller)?
-            .transfer(&mut controller)?;
-        let input = input
-            .into_transferrable(&mut controller)?
-            .transfer(&mut controller)?;
-        let weight = weight.transfer(&mut controller)?;
-        let weight_dir = Transferrable::<Strand>::into_transferrable(weight_dir, &mut controller)?
-            .transfer(&mut controller)?;
+        let model = model.into().transfer(&mut controller)?;
+        let input = input.to_serializable().transfer(&mut controller)?;
+        let weight = weight.to_serializable().transfer(&mut controller)?;
+        let weight_dir = weight_dir.into().to_serializable().transfer(&mut controller)?;
 
         let result = unsafe {
-            __sr_ml_invoke_model(model.ptr(), input.ptr(), weight.ptr(), weight_dir.ptr())
+            __sr_ml_invoke_model(*model, *input, *weight, *weight_dir)
         };
-        let result = CResult::<Value>::receive(result.try_into()?, &mut controller)?;
-        Result::<R>::from_transferrable(result, &mut controller)?
+        Result::<SerializableArg<R>>::receive(result.try_into()?, &mut controller)?.map(|x| x.0)
     }
 
     /// Tokenizes input using a specified tokenizer.
@@ -693,19 +632,14 @@ pub mod ml {
     pub fn tokenize<T, I>(tokenizer: T, input: I) -> Result<Vec<f64>>
     where
         T: Into<String>,
-        I: Transferrable<Value>,
+        I: Arg,
     {
-        let tokenizer = tokenizer.into();
         let mut controller = Controller {};
-        let tokenizer = Transferrable::<Strand>::into_transferrable(tokenizer, &mut controller)?
-            .transfer(&mut controller)?;
-        let input = input
-            .into_transferrable(&mut controller)?
-            .transfer(&mut controller)?;
+        let tokenizer = tokenizer.into().to_serializable().transfer(&mut controller)?;
+        let input = input.to_serializable().transfer(&mut controller)?;
 
-        let result = unsafe { __sr_ml_tokenize(tokenizer.ptr(), input.ptr()) };
-        let result =
-            CResult::<TransferredArray<f64>>::receive(result.try_into()?, &mut controller)?;
-        Result::<Vec<f64>>::from_transferrable(result, &mut controller)?
+        let result = unsafe { __sr_ml_tokenize(*tokenizer, *input) };
+        Result::<Vec<SerializableArg<f64>>>::receive(result.try_into()?, &mut controller)?
+            .map(|x| x.into_iter().map(|x| x.0).collect())
     }
 }

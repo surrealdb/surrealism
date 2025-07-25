@@ -1,14 +1,11 @@
 use anyhow::Result;
+use surrealism_types::arg::Arg;
+use surrealism_types::controller::MemoryController;
+use surrealism_types::transfer::{Ptr, Transfer};
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use surrealdb::sql;
+use surrealdb::expr;
 use surrealism_types::args::Args;
-use surrealism_types::array::TransferredArray;
-use surrealism_types::controller::MemoryController;
-use surrealism_types::convert::{Transfer, Transferrable, Transferred};
-use surrealism_types::kind::{Kind, KindOf};
-use surrealism_types::utils::CResult;
-use surrealism_types::value::Value;
 
 /// Represents a wrapped function in the Surrealism framework.
 ///
@@ -34,8 +31,8 @@ use surrealism_types::value::Value;
 pub struct SurrealismFunction<A, R, F>
 where
     A: 'static + Send + Sync + Args + Debug,
-    R: 'static + Send + Sync + Transferrable<CResult<Value>> + Debug,
-    F: 'static + Send + Sync + Fn(A) -> R,
+    R: 'static + Send + Sync + Arg + Debug,
+    F: 'static + Send + Sync + Fn(A) -> Result<R, String>,
 {
     function: F,
     _phantom: PhantomData<(A, R)>,
@@ -44,8 +41,8 @@ where
 impl<A, R, F> SurrealismFunction<A, R, F>
 where
     A: 'static + Send + Sync + Args + Debug,
-    R: 'static + Send + Sync + Transferrable<CResult<Value>> + KindOf + Debug,
-    F: 'static + Send + Sync + Fn(A) -> R,
+    R: 'static + Send + Sync + Arg + Debug,
+    F: 'static + Send + Sync + Fn(A) -> Result<R, String>,
 {
     /// Creates a new `SurrealismFunction` from the given callable.
     ///
@@ -67,7 +64,7 @@ where
     ///
     /// # Returns
     /// A vector of `sql::Kind` representing the argument types.
-    pub fn args(&self) -> Vec<sql::Kind> {
+    pub fn args(&self) -> Vec<expr::Kind> {
         A::kinds()
     }
 
@@ -77,7 +74,7 @@ where
     ///
     /// # Returns
     /// The `sql::Kind` of the return value.
-    pub fn returns(&self) -> sql::Kind {
+    pub fn returns(&self) -> expr::Kind {
         R::kindof()
     }
 
@@ -91,7 +88,7 @@ where
     ///
     /// # Errors
     /// Propagates any error from the wrapped function if it returns a `Result`.
-    pub fn invoke(&self, args: A) -> Result<R> {
+    pub fn invoke(&self, args: A) -> Result<Result<R, String>> {
         Ok((self.function)(args))
     }
 
@@ -112,15 +109,8 @@ where
     pub fn args_raw(
         &self,
         controller: &mut dyn MemoryController,
-    ) -> Result<Transferred<TransferredArray<Kind>>> {
-        self.args()
-            // Map them into transferrable types
-            .into_iter()
-            .map(|x| sql::Kind::into_transferrable(x, controller))
-            .collect::<Result<Vec<Kind>>>()?
-            // Transfer the value
-            .into_transferrable(controller)?
-            .transfer(controller)
+    ) -> Result<Ptr> {
+        self.args().transfer(controller)
     }
 
     /// Prepares the return kind for raw transfer over memory.
@@ -137,10 +127,8 @@ where
     /// # Errors
     /// - If converting the kind to a transferable type fails.
     /// - If transferring the kind fails.
-    pub fn returns_raw(&self, controller: &mut dyn MemoryController) -> Result<Transferred<Kind>> {
-        self.returns()
-            .into_transferrable(controller)?
-            .transfer(controller)
+    pub fn returns_raw(&self, controller: &mut dyn MemoryController) -> Result<Ptr> {
+        self.returns().transfer(controller)
     }
 
     /// Invokes the wrapped function using raw transferred arguments.
@@ -162,11 +150,9 @@ where
     pub fn invoke_raw(
         &self,
         controller: &mut dyn MemoryController,
-        args: Transferred<TransferredArray<Value>>,
-    ) -> Result<Transferred<CResult<Value>>> {
-        let args = A::accept_args(args, controller)?;
-        self.invoke(args)?
-            .into_transferrable(controller)?
-            .transfer(controller)
+        args: Ptr
+    ) -> Result<Ptr> {
+        let args = A::from_values(Vec::<expr::Value>::receive(args, controller)?)?;
+        self.invoke(args)?.map(|x| x.to_serializable()).transfer(controller)
     }
 }

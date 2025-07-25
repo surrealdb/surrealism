@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use candle_core::DType;
 use std::{io::BufRead, sync::Arc};
 use std::path::PathBuf;
-use surrealdb::sql;
+use surrealdb::expr;
 use surrealism_runtime::{
     config::SurrealismConfig,
     host::Host,
@@ -32,7 +32,7 @@ impl Host for DemoHost {
         &self.kv
     }
 
-    fn sql(&self, _config: &SurrealismConfig, query: String, vars: sql::Object) -> Result<sql::Value> {
+    fn sql(&self, _config: &SurrealismConfig, query: String, vars: expr::Object) -> Result<expr::Value> {
         println!("The module is running a SQL query:");
         println!("SQL: {query}");
         println!("Vars: {vars:#}");
@@ -57,8 +57,8 @@ impl Host for DemoHost {
         _config: &SurrealismConfig,
         fnc: String,
         version: Option<String>,
-        args: Vec<sql::Value>,
-    ) -> Result<sql::Value> {
+        args: Vec<expr::Value>,
+    ) -> Result<expr::Value> {
         let version = version.map(|x| format!("<{x}>")).unwrap_or_default();
         println!("The module is running a function:");
         println!(
@@ -89,11 +89,11 @@ impl Host for DemoHost {
         &self,
         _config: &SurrealismConfig,
         model: String,
-        input: sql::Value,
+        input: expr::Value,
         weight: i64,
         weight_dir: String,
-    ) -> Result<sql::Value> {
-        let sql::Value::Strand(input) = input else {
+    ) -> Result<expr::Value> {
+        let expr::Value::Strand(input) = input else {
             anyhow::bail!("Expected string input")
         };
         let home = std::env::var("HOME")?;
@@ -119,7 +119,7 @@ impl Host for DemoHost {
             .into())
     }
 
-    fn ml_tokenize(&self, _config: &SurrealismConfig, model: String, input: sql::Value) -> Result<Vec<f64>> {
+    fn ml_tokenize(&self, _config: &SurrealismConfig, model: String, input: expr::Value) -> Result<Vec<f64>> {
         println!("The module is running a ML tokenizer:");
         println!("Model: {model}");
         println!("Input: {input:}");
@@ -128,11 +128,11 @@ impl Host for DemoHost {
         loop {
             match parse_value(&mut std::io::stdin().lock().lines().next().unwrap().unwrap()) {
                 Ok(x) => {
-                    if let sql::Value::Array(x) = x {
+                    if let expr::Value::Array(x) = x {
                         let arr = x
                             .into_iter()
                             .map(|x| -> Result<f64> {
-                                if let sql::Value::Number(sql::Number::Float(x)) = x {
+                                if let expr::Value::Number(expr::Number::Float(x)) = x {
                                     Ok(x)
                                 } else {
                                     Err(anyhow::anyhow!("Expected array of f64"))

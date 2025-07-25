@@ -77,7 +77,7 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     // Return type analysis
-    let (output_type, is_result) = match &fn_sig.output {
+    let (result_type, is_result) = match &fn_sig.output {
         ReturnType::Default => (quote! { () }, false),
         ReturnType::Type(_, ty) => {
             // Check if the return type is Result<T, E>
@@ -86,7 +86,7 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
                     if last_segment.ident == "Result" {
                         if let PathArguments::AngleBracketed(args) = &last_segment.arguments {
                             if let Some(GenericArgument::Type(inner_type)) = args.args.first() {
-                                (quote! { Result<#inner_type, String> }, true)
+                                (quote! { #inner_type }, true)
                             } else {
                                 (quote! { #ty }, false)
                             }
@@ -164,7 +164,7 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         } else {
             quote! {
-                #fn_name(#(#arg_patterns),*)
+                Ok(#fn_name(#(#arg_patterns),*))
             }
         };
 
@@ -172,8 +172,7 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
             let expr = quote! { f.invoke_raw(&mut controller, ptr.into()) };
             let try_or_fail_result = try_or_fail(expr, "Function invocation");
             quote! {
-                #try_or_fail_result
-                .ptr()
+                (*#try_or_fail_result)
                 .try_into()
                 .unwrap_or_else(|_| {
                     eprintln!("Transfer error: pointer overflow");
@@ -183,7 +182,7 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
         } else {
             quote! {
                 match f.invoke_raw(&mut controller, ptr.into()) {
-                    Ok(result) =>                     match result.ptr().try_into() {
+                    Ok(result) => match (*result).try_into() {
                         Ok(ptr) => ptr,
                         Err(_) => {
                             eprintln!("Transfer error: pointer overflow");
@@ -202,8 +201,7 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
             let expr = quote! { f.args_raw(&mut controller) };
             let try_or_fail_result = try_or_fail(expr, "Args");
             quote! {
-                #try_or_fail_result
-                .ptr()
+                (*#try_or_fail_result)
                 .try_into()
                 .unwrap_or_else(|_| {
                     eprintln!("Transfer error: pointer overflow");
@@ -213,7 +211,7 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
         } else {
             quote! {
                 match f.args_raw(&mut controller) {
-                    Ok(result) => match result.ptr().try_into() {
+                    Ok(result) => match (*result).try_into() {
                         Ok(ptr) => ptr,
                         Err(_) => {
                             eprintln!("Transfer error: pointer overflow");
@@ -232,8 +230,7 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
             let expr = quote! { f.returns_raw(&mut controller) };
             let try_or_fail_result = try_or_fail(expr, "Returns");
             quote! {
-                #try_or_fail_result
-                .ptr()
+                (*#try_or_fail_result)
                 .try_into()
                 .unwrap_or_else(|_| {
                     eprintln!("Transfer error: pointer overflow");
@@ -243,7 +240,7 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
         } else {
             quote! {
                 match f.returns_raw(&mut controller) {
-                    Ok(result) => match result.ptr().try_into() {
+                    Ok(result) => match (*result).try_into() {
                         Ok(ptr) => ptr,
                         Err(_) => {
                             eprintln!("Transfer error: pointer overflow");
@@ -263,9 +260,9 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             #[unsafe(no_mangle)]
             pub extern "C" fn #export_ident(ptr: u32) -> i32 {
-                use surrealism::types::convert::Transfer;
+                use surrealism::types::transfer::Transfer;
                 let mut controller = surrealism::Controller {};
-                let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
+                let f = surrealism::SurrealismFunction::<#tuple_type, #result_type, _>::from(
                     |#tuple_pattern: #tuple_type| #function_call
                 );
                 #transfer_call
@@ -273,9 +270,9 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             #[unsafe(no_mangle)]
             pub extern "C" fn #args_ident() -> i32 {
-                use surrealism::types::convert::Transfer;
+                use surrealism::types::transfer::Transfer;
                 let mut controller = surrealism::Controller {};
-                let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
+                let f = surrealism::SurrealismFunction::<#tuple_type, #result_type, _>::from(
                     |#tuple_pattern: #tuple_type| #function_call
                 );
                 #args_call
@@ -283,9 +280,9 @@ pub fn surrealism(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             #[unsafe(no_mangle)]
             pub extern "C" fn #returns_ident() -> i32 {
-                use surrealism::types::convert::Transfer;
+                use surrealism::types::transfer::Transfer;
                 let mut controller = surrealism::Controller {};
-                let f = surrealism::SurrealismFunction::<#tuple_type, #output_type, _>::from(
+                let f = surrealism::SurrealismFunction::<#tuple_type, #result_type, _>::from(
                     |#tuple_pattern: #tuple_type| #function_call
                 );
                 #returns_call

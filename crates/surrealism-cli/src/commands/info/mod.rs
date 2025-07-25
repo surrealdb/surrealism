@@ -1,7 +1,7 @@
 use crate::{commands::SurrealismCommand, host::DemoHost};
 use anyhow::Result;
 use std::path::PathBuf;
-use surrealdb::sql::Kind;
+use surrealdb::expr::Kind;
 use surrealism_runtime::package::SurrealismPackage;
 use surrealism_types::err::PrefixError;
 

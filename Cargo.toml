@@ -21,7 +21,7 @@ tar = "0.4.40"
 zstd = "0.13.0"
 wasmtime = { version = "34.0.1", default-features = false, features = ["cranelift"] }
 wasmtime-wasi = "34.0.1"
-surrealdb = { version = "2.3.6", default-features = false, features = ["kv-mem"] }
+surrealdb = { path="../surrealdb/crates/sdk", default-features = false, features = ["kv-mem"] }
 uuid = "1.8.0"
 chrono = "0.4.38"
 tempfile = "3.10.0"
