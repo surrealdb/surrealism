@@ -2,35 +2,35 @@ use std::collections::BTreeMap;
 use std::sync::RwLock;
 
 use anyhow::Result;
-use surrealdb::sql;
+use surrealdb::expr;
 
 use std::ops::Bound;
 
 pub trait KVStore: Send {
-    fn get(&self, key: String) -> Result<Option<sql::Value>>;
-    fn set(&self, key: String, value: sql::Value) -> Result<()>;
+    fn get(&self, key: String) -> Result<Option<expr::Value>>;
+    fn set(&self, key: String, value: expr::Value) -> Result<()>;
     fn del(&self, key: String) -> Result<()>;
     fn exists(&self, key: String) -> Result<bool>;
 
     fn del_rng(&self, start: Bound<String>, end: Bound<String>) -> Result<()>;
 
-    fn get_batch(&self, keys: Vec<String>) -> Result<Vec<Option<sql::Value>>>;
-    fn set_batch(&self, entries: Vec<(String, sql::Value)>) -> Result<()>;
+    fn get_batch(&self, keys: Vec<String>) -> Result<Vec<Option<expr::Value>>>;
+    fn set_batch(&self, entries: Vec<(String, expr::Value)>) -> Result<()>;
     fn del_batch(&self, keys: Vec<String>) -> Result<()>;
 
     fn keys(&self, start: Bound<String>, end: Bound<String>) -> Result<Vec<String>>;
-    fn values(&self, start: Bound<String>, end: Bound<String>) -> Result<Vec<sql::Value>>;
+    fn values(&self, start: Bound<String>, end: Bound<String>) -> Result<Vec<expr::Value>>;
     fn entries(
         &self,
         start: Bound<String>,
         end: Bound<String>,
-    ) -> Result<Vec<(String, sql::Value)>>;
+    ) -> Result<Vec<(String, expr::Value)>>;
     fn count(&self, start: Bound<String>, end: Bound<String>) -> Result<u64>;
 }
 
 /// In-memory BTreeMap implementation of KVStore
 pub struct BTreeMapStore {
-    inner: RwLock<BTreeMap<String, sql::Value>>,
+    inner: RwLock<BTreeMap<String, expr::Value>>,
 }
 
 impl BTreeMapStore {
@@ -89,7 +89,7 @@ impl Default for BTreeMapStore {
 }
 
 impl KVStore for BTreeMapStore {
-    fn get(&self, key: String) -> Result<Option<sql::Value>> {
+    fn get(&self, key: String) -> Result<Option<expr::Value>> {
         let map = self
             .inner
             .read()
@@ -97,7 +97,7 @@ impl KVStore for BTreeMapStore {
         Ok(map.get(&key).cloned())
     }
 
-    fn set(&self, key: String, value: sql::Value) -> Result<()> {
+    fn set(&self, key: String, value: expr::Value) -> Result<()> {
         let mut map = self
             .inner
             .write()
@@ -136,7 +136,7 @@ impl KVStore for BTreeMapStore {
         Ok(())
     }
 
-    fn get_batch(&self, keys: Vec<String>) -> Result<Vec<Option<sql::Value>>> {
+    fn get_batch(&self, keys: Vec<String>) -> Result<Vec<Option<expr::Value>>> {
         let map = self.inner.read().map_err(|_| {
             anyhow::anyhow!("Failed to get batch from KV store: Could not acquire lock")
         })?;
@@ -147,7 +147,7 @@ impl KVStore for BTreeMapStore {
         Ok(results)
     }
 
-    fn set_batch(&self, entries: Vec<(String, sql::Value)>) -> Result<()> {
+    fn set_batch(&self, entries: Vec<(String, expr::Value)>) -> Result<()> {
         let mut map = self.inner.write().map_err(|_| {
             anyhow::anyhow!("Failed to set batch in KV store: Could not acquire lock")
         })?;
@@ -179,11 +179,11 @@ impl KVStore for BTreeMapStore {
         Ok(keys)
     }
 
-    fn values(&self, start: Bound<String>, end: Bound<String>) -> Result<Vec<sql::Value>> {
+    fn values(&self, start: Bound<String>, end: Bound<String>) -> Result<Vec<expr::Value>> {
         let map = self.inner.read().map_err(|_| {
             anyhow::anyhow!("Failed to collect values from KV store: Could not acquire lock")
         })?;
-        let values: Vec<sql::Value> = map
+        let values: Vec<expr::Value> = map
             .iter()
             .filter(|(key, _)| self.in_range(key, &start, &end))
             .map(|(_, value)| value.clone())
@@ -195,11 +195,11 @@ impl KVStore for BTreeMapStore {
         &self,
         start: Bound<String>,
         end: Bound<String>,
-    ) -> Result<Vec<(String, sql::Value)>> {
+    ) -> Result<Vec<(String, expr::Value)>> {
         let map = self.inner.read().map_err(|_| {
             anyhow::anyhow!("Failed to collect entries from KV store: Could not acquire lock")
         })?;
-        let entries: Vec<(String, sql::Value)> = map
+        let entries: Vec<(String, expr::Value)> = map
             .iter()
             .filter(|(key, _)| self.in_range(key, &start, &end))
             .map(|(key, value)| (key.clone(), value.clone()))

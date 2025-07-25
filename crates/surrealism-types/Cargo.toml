@@ -16,3 +16,7 @@ thiserror.workspace = true
 uuid.workspace = true
 surrealdb.workspace = true
 chrono.workspace = true
+bytes = "1.10.1"
+flatbuffers = "25.2.10"
+surrealdb-protocol = { path = "../../../surrealdb-protocol", default-features = false }
+rust_decimal = "1.37.2"

@@ -1,21 +1,16 @@
-use std::ops::{Bound, Deref, DerefMut};
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
 use anyhow::Result;
-use surrealdb::sql;
+use surrealdb::expr;
+use surrealism_types::serialize::SerializableRange;
 use surrealism_types::{
-    array::TransferredArray,
     controller::MemoryController,
-    convert::{Transfer, Transferrable, TransferrableArray},
     err::PrefixError,
-    object::KeyValuePair,
-    string::Strand,
-    utils::{COption, CRange, CResult},
-    value::{Object, Value},
+    transfer::Transfer,
 };
 use wasmtime::{Caller, Linker};
 
-use crate::capabilities::SurrealismCapabilities;
 use crate::config::SurrealismConfig;
 use crate::{controller::StoreData, kv::KVStore};
 
@@ -48,12 +43,9 @@ macro_rules! register_host_function {
                     $(let $arg = host_try_or_return!("Failed to receive argument", <$arg_ty>::receive($arg.into(), &mut $controller));)*
 
                     // Execute the main function body and handle errors gracefully
-                    let result = match (|| -> Result<$ret> $body)() {
-                        Ok(x) => CResult::Ok(x),
-                        Err(e) => CResult::Err(host_try_or_return!("Failed to transfer error", e.to_string().into_transferrable(&mut $controller))),
-                    };
+                    let result = (|| -> Result<$ret> $body)();
 
-                    host_try_or_return!("Transfer error", CResult::<$ret>::transfer(result, &mut $controller)).ptr() as i32
+                    (*host_try_or_return!("Transfer error", result.transfer(&mut $controller))) as i32
                 }
             )
             .prefix_err(|| "failed to register host function")?
@@ -61,14 +53,14 @@ macro_rules! register_host_function {
 }
 
 pub trait Host: Send + Sync {
-    fn sql(&self, config: &SurrealismConfig, query: String, vars: sql::Object) -> Result<sql::Value>;
+    fn sql(&self, config: &SurrealismConfig, query: String, vars: expr::Object) -> Result<expr::Value>;
     fn run(
         &self,
         config: &SurrealismConfig,
         fnc: String,
         version: Option<String>,
-        args: Vec<sql::Value>,
-    ) -> Result<sql::Value>;
+        args: Vec<expr::Value>,
+    ) -> Result<expr::Value>;
 
     fn kv(&self) -> &dyn KVStore;
 
@@ -76,11 +68,11 @@ pub trait Host: Send + Sync {
         &self,
         config: &SurrealismConfig,
         model: String,
-        input: sql::Value,
+        input: expr::Value,
         weight: i64,
         weight_dir: String,
-    ) -> Result<sql::Value>;
-    fn ml_tokenize(&self, config: &SurrealismConfig, model: String, input: sql::Value) -> Result<Vec<f64>>;
+    ) -> Result<expr::Value>;
+    fn ml_tokenize(&self, config: &SurrealismConfig, model: String, input: expr::Value) -> Result<Vec<f64>>;
 
     /// Handle stdout output from the WASM module
     ///
@@ -146,195 +138,101 @@ pub trait Host: Send + Sync {
 pub fn implement_host_functions(linker: &mut Linker<StoreData>) -> Result<()> {
     // SQL function
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_sql", |controller: HostController, sql: Strand, vars: Object| -> Result<Value> {
-        let sql = String::from_transferrable(sql, &mut controller)?;
-        let vars = sql::Object::from_transferrable(vars, &mut controller)?;
+    register_host_function!(linker, "__sr_sql", |controller: HostController, sql: String, vars: Vec<(String, expr::Value)>| -> Result<expr::Value> {
+        let vars = expr::Object::from_iter(vars.into_iter());
         controller
             .host()
-            .sql(controller.config(), sql, vars)?
-            .into_transferrable(&mut controller)
+            .sql(controller.config(), sql, vars)
     });
 
     // Run function
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_run", |controller: HostController, fnc: Strand, version: COption<Strand>, args: TransferredArray<Value>| -> Result<Value> {
-        let fnc = String::from_transferrable(fnc, &mut controller)?;
-        let version = Option::<String>::from_transferrable(version, &mut controller)?;
-        let args_vec = Vec::<Value>::from_transferrable(args, &mut controller)?;
-        let args = args_vec
-            .into_iter()
-            .map(|x| sql::Value::from_transferrable(x, &mut controller))
-            .collect::<Result<Vec<sql::Value>>>()?;
+    register_host_function!(linker, "__sr_run", |controller: HostController, fnc: String, version: Option<String>, args: Vec<expr::Value>| -> Result<expr::Value> {
         controller
             .host()
-            .run(controller.config(), fnc, version, args)?
-            .into_transferrable(&mut controller)
+            .run(controller.config(), fnc, version, args)
     });
 
     // KV functions
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_kv_get", |controller: HostController, key: Strand| -> Result<COption<Value>> {
-        let key = String::from_transferrable(key, &mut controller)?;
+    register_host_function!(linker, "__sr_kv_get", |controller: HostController, key: String| -> Result<Option<expr::Value>> {
         controller
             .host()
             .kv()
-            .get(key)?
-            .into_transferrable(&mut controller)
+            .get(key)
     });
 
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_kv_set", |controller: HostController, key: Strand, value: Value| -> Result<()> {
-        let key = String::from_transferrable(key, &mut controller)?;
-        let value = sql::Value::from_transferrable(value, &mut controller)?;
-        controller.host().kv().set(key, value)?;
-        Ok(())
+    register_host_function!(linker, "__sr_kv_set", |controller: HostController, key: String, value: expr::Value| -> Result<()> {
+        controller.host().kv().set(key, value)
     });
 
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_kv_del", |controller: HostController, key: Strand| -> Result<()> {
-        let key = String::from_transferrable(key, &mut controller)?;
-        controller.host().kv().del(key)?;
-        Ok(())
+    register_host_function!(linker, "__sr_kv_del", |controller: HostController, key: String| -> Result<()> {
+        controller.host().kv().del(key)
     });
 
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_kv_exists", |controller: HostController, key: Strand| -> Result<bool> {
-        let key = String::from_transferrable(key, &mut controller)?;
+    register_host_function!(linker, "__sr_kv_exists", |controller: HostController, key: String| -> Result<bool> {
         controller.host().kv().exists(key)
     });
 
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_kv_del_rng", |controller: HostController, range: CRange<Strand>| -> Result<()> {
-        let start = Bound::<String>::from_transferrable(range.start, &mut controller)?;
-        let end = Bound::<String>::from_transferrable(range.end, &mut controller)?;
-        controller.host().kv().del_rng(start, end)?;
-        Ok(())
+    register_host_function!(linker, "__sr_kv_del_rng", |controller: HostController, range: SerializableRange<String>| -> Result<()> {
+        controller.host().kv().del_rng(range.beg, range.end)
     });
 
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_kv_get_batch", |controller: HostController, keys: TransferredArray<Strand>| -> Result<TransferredArray<COption<Value>>> {
-        let keys = Vec::<String>::from_transferred_array(keys, &mut controller)?;
-        let values = controller.host().kv().get_batch(keys)?;
-        values.transfer_array(&mut controller)
+    register_host_function!(linker, "__sr_kv_get_batch", |controller: HostController, keys: Vec<String>| -> Result<Vec<Option<expr::Value>>> {
+        controller.host().kv().get_batch(keys)
     });
 
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_kv_set_batch", |controller: HostController, entries: TransferredArray<KeyValuePair>| -> Result<()> {
-        let entries = Vec::<(String, sql::Value)>::from_transferred_array(entries, &mut controller)?;
-        controller.host().kv().set_batch(entries)?;
-        Ok(())
+    register_host_function!(linker, "__sr_kv_set_batch", |controller: HostController, entries: Vec<(String, expr::Value)>| -> Result<()> {
+        controller.host().kv().set_batch(entries)
     });
 
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_kv_del_batch", |controller: HostController, keys: TransferredArray<Strand>| -> Result<()> {
-        let keys = Vec::<String>::from_transferred_array(keys, &mut controller)?;
-        controller.host().kv().del_batch(keys)?;
-        Ok(())
+    register_host_function!(linker, "__sr_kv_del_batch", |controller: HostController, keys: Vec<String>| -> Result<()> {
+        controller.host().kv().del_batch(keys)
     });
 
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_kv_keys", |controller: HostController, range: CRange<Strand>| -> Result<TransferredArray<Strand>> {
-        let start = Bound::<String>::from_transferrable(range.start, &mut controller)?;
-        let end = Bound::<String>::from_transferrable(range.end, &mut controller)?;
-        let keys = controller.host().kv().keys(start, end)?;
-        keys.transfer_array(&mut controller)
+    register_host_function!(linker, "__sr_kv_keys", |controller: HostController, range: SerializableRange<String>| -> Result<Vec<String>> {
+        controller.host().kv().keys(range.beg, range.end)
     });
 
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_kv_values", |controller: HostController, range: CRange<Strand>| -> Result<TransferredArray<Value>> {
-        let start = Bound::<String>::from_transferrable(range.start, &mut controller)?;
-        let end = Bound::<String>::from_transferrable(range.end, &mut controller)?;
-        let values = controller.host().kv().values(start, end)?;
-        values.transfer_array(&mut controller)
+    register_host_function!(linker, "__sr_kv_values", |controller: HostController, range: SerializableRange<String>| -> Result<Vec<expr::Value>> {
+        controller.host().kv().values(range.beg, range.end)
     });
 
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_kv_entries", |controller: HostController, range: CRange<Strand>| -> Result<TransferredArray<KeyValuePair>> {
-        let start = Bound::<String>::from_transferrable(range.start, &mut controller)?;
-        let end = Bound::<String>::from_transferrable(range.end, &mut controller)?;
-        let entries = controller.host().kv().entries(start, end)?;
-        entries.transfer_array(&mut controller)
+    register_host_function!(linker, "__sr_kv_entries", |controller: HostController, range: SerializableRange<String>| -> Result<Vec<(String, expr::Value)>> {
+        controller.host().kv().entries(range.beg, range.end)
     });
 
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_kv_count", |controller: HostController, range: CRange<Strand>| -> Result<u64> {
-        let start = Bound::<String>::from_transferrable(range.start, &mut controller)?;
-        let end = Bound::<String>::from_transferrable(range.end, &mut controller)?;
-        controller.host().kv().count(start, end)
+    register_host_function!(linker, "__sr_kv_count", |controller: HostController, range: SerializableRange<String>| -> Result<u64> {
+        controller.host().kv().count(range.beg, range.end)
     });
 
     // ML invoke model function
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_ml_invoke_model", |controller: HostController, model: Strand, input: Value, weight: i64, weight_dir: Strand| -> Result<Value> {
-        let model = String::from_transferrable(model, &mut controller)?;
-        let input = sql::Value::from_transferrable(input, &mut controller)?;
-        let weight_dir = String::from_transferrable(weight_dir, &mut controller)?;
+    register_host_function!(linker, "__sr_ml_invoke_model", |controller: HostController, model: String, input: expr::Value, weight: i64, weight_dir: String| -> Result<expr::Value> {
         controller
             .host()
-            .ml_invoke_model(controller.config(), model, input, weight, weight_dir)?
-            .into_transferrable(&mut controller)
+            .ml_invoke_model(controller.config(), model, input, weight, weight_dir)
     });
 
     // ML tokenize function
     #[rustfmt::skip]
-    register_host_function!(linker, "__sr_ml_tokenize", |controller: HostController, model: Strand, input: Value| -> Result<TransferredArray<f64>> {
-        let model = String::from_transferrable(model, &mut controller)?;
-        let input = sql::Value::from_transferrable(input, &mut controller)?;
+    register_host_function!(linker, "__sr_ml_tokenize", |controller: HostController, model: String, input: expr::Value| -> Result<Vec<f64>> {
         controller
             .host()
-            .ml_tokenize(controller.config(), model, input)?
-            .into_transferrable(&mut controller)
+            .ml_tokenize(controller.config(), model, input)
     });
-
-    // Custom stdout handler (WASI-compatible)
-    // linker
-    //     .func_wrap(
-    //         "wasi_snapshot_preview1",
-    //         "fd_write",
-    //         |caller: Caller<StoreData>, fd: u32, iovs_ptr: u32, iovs_len: u32, nwritten_ptr: u32| -> u32 {
-    //             // Only handle stdout (fd == 1) and stderr (fd == 2)
-    //             let mut controller = HostController::from(caller);
-    //             if fd != 1 && fd != 2 {
-    //                 return 8; // __WASI_ERRNO_BADF
-    //             }
-
-    //             // Read the iovec array from guest memory
-    //             let mut output = Vec::new();
-    //             for i in 0..iovs_len {
-    //                 let base = iovs_ptr + i * 8;
-    //                 let mem = controller.mut_mem(base, 8);
-    //                 let ptr = u32::from_le_bytes([mem[0], mem[1], mem[2], mem[3]]);
-    //                 let len = u32::from_le_bytes([mem[4], mem[5], mem[6], mem[7]]);
-    //                 let data = controller.mut_mem(ptr, len);
-    //                 output.extend_from_slice(data);
-    //             }
-
-    //             let output_str = match String::from_utf8(output) {
-    //                 Ok(s) => s,
-    //                 Err(_) => return 21, // __WASI_ERRNO_ILSEQ
-    //             };
-
-    //             let result = if fd == 1 {
-    //                 controller.host().stdout(&output_str)
-    //             } else {
-    //                 controller.host().stderr(&output_str)
-    //             };
-
-    //             if let Err(e) = result {
-    //                 eprintln!("Failed to handle fd_write: {}", e);
-    //                 return 1; // __WASI_ERRNO_ACC
-    //             }
-
-    //             // Write the number of bytes written back to guest memory
-    //             let nwritten = output_str.len() as u32;
-    //             let mem = controller.mut_mem(nwritten_ptr, 4);
-    //             mem.copy_from_slice(&nwritten.to_le_bytes());
-
-    //             0 // __WASI_ERRNO_SUCCESS
-    //         }
-    //     )
-    //     .prefix_err(|| "failed to register WASI fd_write function")?;
-
+    
     Ok(())
 }
 

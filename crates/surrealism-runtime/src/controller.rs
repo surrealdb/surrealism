@@ -1,17 +1,13 @@
 use crate::{
-    capabilities::SurrealismCapabilities, config::SurrealismConfig, host::{implement_host_functions, Host}, package::SurrealismPackage
+    config::SurrealismConfig, host::{implement_host_functions, Host}, package::SurrealismPackage
 };
 use anyhow::Result;
-use surrealdb::sql;
+use surrealdb::expr;
 use surrealism_types::{
     args::Args,
-    array::TransferredArray,
     controller::MemoryController,
-    convert::{Transfer, Transferrable},
     err::PrefixError,
-    kind::Kind,
-    utils::CResult,
-    value::Value,
+    transfer::Transfer,
 };
 use wasmtime::*;
 use wasmtime_wasi::preview1::{self, WasiP1Ctx};
@@ -101,38 +97,32 @@ impl Controller {
         init.call(&mut self.store, ())
     }
 
-    pub fn invoke<A: Args>(&mut self, name: Option<String>, args: A) -> Result<sql::Value> {
+    pub fn invoke<A: Args>(&mut self, name: Option<String>, args: A) -> Result<expr::Value> {
         let name = format!("__sr_fnc__{}", name.unwrap_or_default());
-        let args = args.transfer_args(self)?;
+        let args = args.to_values().transfer(self)?;
         let invoke = self
             .instance
             .get_typed_func::<(u32,), (i32,)>(&mut self.store, &name)?;
-        let (ptr,) = invoke.call(&mut self.store, (args.ptr(),))?;
-        let value = CResult::<Value>::receive(ptr.try_into()?, self)?;
-        Result::<sql::Value>::from_transferrable(value, self)?
+        let (ptr,) = invoke.call(&mut self.store, (*args,))?;
+        Result::<expr::Value>::receive(ptr.try_into()?, self)?
     }
 
-    pub fn args(&mut self, name: Option<String>) -> Result<Vec<sql::Kind>> {
+    pub fn args(&mut self, name: Option<String>) -> Result<Vec<expr::Kind>> {
         let name = format!("__sr_args__{}", name.unwrap_or_default());
         let args = self
             .instance
             .get_typed_func::<(), (i32,)>(&mut self.store, &name)?;
         let (ptr,) = args.call(&mut self.store, ())?;
-        let array = TransferredArray::<Kind>::receive(ptr.try_into()?, self)?;
-        Vec::<Kind>::from_transferrable(array, self)?
-            .into_iter()
-            .map(|x| sql::Kind::from_transferrable(x, self))
-            .collect()
+        Vec::<expr::Kind>::receive(ptr.try_into()?, self)
     }
 
-    pub fn returns(&mut self, name: Option<String>) -> Result<sql::Kind> {
+    pub fn returns(&mut self, name: Option<String>) -> Result<expr::Kind> {
         let name = format!("__sr_returns__{}", name.unwrap_or_default());
         let returns = self
             .instance
             .get_typed_func::<(), (i32,)>(&mut self.store, &name)?;
         let (ptr,) = returns.call(&mut self.store, ())?;
-        let kind = Kind::receive(ptr.try_into()?, self)?;
-        sql::Kind::from_transferrable(kind, self)
+        expr::Kind::receive(ptr.try_into()?, self)
     }
 
     pub fn list(&mut self) -> Result<Vec<String>> {

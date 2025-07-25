@@ -3,7 +3,7 @@ pub(crate) mod host;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
-use surrealdb::sql::Value;
+use surrealdb::expr::Value;
 
 use crate::commands::{
     build::BuildCommand, info::InfoCommand, run::RunCommand, sig::SigCommand, SurrealismCommand,
@@ -65,7 +65,7 @@ enum Commands {
 
 /// Custom parser for `surrealdb::sql::Value`
 fn parse_value(s: &str) -> Result<Value, String> {
-    surrealdb::sql::value(s).map_err(|e| format!("Invalid value: {e}"))
+    surrealdb::expr::value(s).map_err(|e| format!("Invalid value: {e}"))
 }
 
 fn main() {
