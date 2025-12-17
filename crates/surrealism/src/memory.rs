@@ -6,7 +6,6 @@
 ///
 /// # Parameters
 /// - `len`: The size of the memory block to allocate, in bytes.
-/// - `align`: The alignment requirement for the allocated memory, in bytes.
 ///
 /// # Returns
 /// A `u32` representing the starting offset (pointer) of the allocated memory.
@@ -21,19 +20,19 @@
 /// proper deallocation using `__sr_free` to avoid memory leaks. The returned pointer must
 /// be valid for the WASM linear memory context if used in such environments.
 #[unsafe(no_mangle)]
-pub extern "C" fn __sr_alloc(len: u32, align: u32) -> i32 {
-    let layout = match std::alloc::Layout::from_size_align(len as usize, align as usize) {
-        Ok(layout) => layout,
-        Err(_) => return -1, // invalid layout
-    };
+pub extern "C" fn __sr_alloc(len: u32) -> u32 {
+	let layout = match std::alloc::Layout::from_size_align(len as usize, 8) {
+		Ok(layout) => layout,
+		Err(_) => return 0, // invalid layout
+	};
 
-    let ptr = unsafe { std::alloc::alloc(layout) };
+	let ptr = unsafe { std::alloc::alloc(layout) };
 
-    if ptr.is_null() {
-        -1 // signal OOM or allocation failure
-    } else {
-        ptr as usize as i32 // cast pointer to offset
-    }
+	if ptr.is_null() {
+		0 // signal OOM or allocation failure
+	} else {
+		ptr as usize as u32 // cast pointer to offset
+	}
 }
 
 /// Deallocates a previously allocated block of memory.
@@ -47,25 +46,22 @@ pub extern "C" fn __sr_alloc(len: u32, align: u32) -> i32 {
 /// - `ptr`: The starting offset (pointer) of the memory block to deallocate.
 /// - `len`: The size of the memory block being deallocated, in bytes.
 ///
-/// # Panics
-/// Panics if the provided size and hardcoded alignment (8) do not form a valid `Layout`.
-///
 /// # Safety
 /// This function is unsafe because it performs raw deallocation. The caller must ensure:
 /// - The `ptr` is a valid pointer previously returned by `__sr_alloc`.
 /// - The `len` matches the originally allocated size.
-/// - No further access to the memory occurs after deallocation.
-/// Incorrect usage may lead to undefined behavior, such as double-free or use-after-free.
+/// - No further access to the memory occurs after deallocation. Incorrect usage may lead to
+///   undefined behavior, such as double-free or use-after-free.
 #[unsafe(no_mangle)]
-pub extern "C" fn __sr_free(ptr: u32, len: u32) -> i32 {
-    let layout = match std::alloc::Layout::from_size_align(len as usize, 8) {
-        Ok(layout) => layout,
-        Err(_) => return -1, // invalid layout
-    };
+pub extern "C" fn __sr_free(ptr: u32, len: u32) -> u32 {
+	let layout = match std::alloc::Layout::from_size_align(len as usize, 8) {
+		Ok(layout) => layout,
+		Err(_) => return 0, // invalid layout - return 0 to indicate failure
+	};
 
-    let ptr = ptr as usize as *mut u8;
-    unsafe {
-        std::alloc::dealloc(ptr, layout);
-    }
-    0 // success
+	let ptr = ptr as usize as *mut u8;
+	unsafe {
+		std::alloc::dealloc(ptr, layout);
+	}
+	1 // success
 }

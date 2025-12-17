@@ -1,1 +1,1 @@
-./surrealism build -o demo.surli ../crates/demo
+./surrealism build -o demo.surli ../demo

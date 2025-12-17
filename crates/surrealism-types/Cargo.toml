@@ -1,18 +1,24 @@
 [package]
 name = "surrealism-types"
-version = "0.1.0"
-edition = "2021"
-authors = ["Tobie Morgan Hitchcock <tobie@surrealdb.com>"]
-description = "Types for Surrealism."
-license-file = "LICENSE"
-repository = "https://github.com/surrealdb/surrealdb"
-homepage = "https://github.com/surrealdb/surrealdb"
+version = "0.1.6"
+description = "Types for Surrealism"
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license-file.workspace = true
+
+[features]
+# Enable this feature for the host side (runtime) to make traits async
+host = []
 
 [dependencies]
 anyhow.workspace = true
-serde.workspace = true
-serde_json.workspace = true
-thiserror.workspace = true
-uuid.workspace = true
-surrealdb.workspace = true
-chrono.workspace = true
+async-trait.workspace = true
+surrealdb-types.workspace = true
+bytes.workspace = true
+
+[lints]
+workspace = true
