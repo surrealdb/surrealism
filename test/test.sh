@@ -28,3 +28,7 @@ echo "Running 'test_kv' function in 'demo.surli':"
 echo ""
 echo "Running 'test_io' function in 'demo.surli':"
 ./surrealism run --fnc test_io demo.surli
+
+echo ""
+echo "Running 'test_none_value' function in 'demo.surli':"
+./surrealism run --fnc test_none_value demo.surli

@@ -9,28 +9,55 @@ members = [
 ]
 resolver = "2"
 
+[workspace.package]
+authors = ["Tobie Morgan Hitchcock <tobie@surrealdb.com>"]
+edition = "2024"
+license-file = "LICENSE"
+description = "A scalable, distributed, collaborative, document-graph database, for the realtime web"
+repository = "https://github.com/surrealdb/surrealdb"
+homepage = "https://github.com/surrealdb/surrealdb"
+keywords = [
+    "database",
+    "embedded-database",
+    "key-value",
+    "key-value-store",
+    "kv-store",
+]
+categories = ["database-implementations", "data-structures", "embedded"]
+
 [workspace.dependencies]
-anyhow = "1.0.98"
-thiserror = "1.0.57"
+# Internal crates
+surrealism = { version = "=0.1.6", path = "crates/surrealism" }
+surrealism-cli = { version = "=0.1.6", path = "crates/surrealism-cli" }
+surrealism-macros = { version = "=0.1.6", path = "crates/surrealism-macros", default-features = false }
+surrealism-runtime = { version = "=0.1.6", path = "crates/surrealism-runtime" }
+surrealism-types = { version = "=0.1.6", path = "crates/surrealism-types", default-features = false }
+
+# SurrealDB dependencies
+surrealdb-core = { version = "=3.0.0-beta.1", default-features = false }
+surrealdb-types = { version = "=3.0.0-beta.1" }
+
+# Core dependencies
+anyhow = "1.0.100"
+async-trait = "0.1.88"
+bytes = "1.5.0"
 clap = { version = "4.5.40", features = ["derive"] }
-serde = "1.0.219"
-serde_json = "1.0.108"
-semver = "1.0.20"
-toml = "0.8.10"
+proc-macro2 = "1.0"
+quote = "1.0"
+semver = "1.0.27"
+serde = "1.0.209"
+serde_json = "1.0.145"
+syn = { version = "2.0", features = ["full"] }
 tar = "0.4.40"
-zstd = "0.13.0"
-wasmtime = { version = "34.0.1", default-features = false, features = ["cranelift"] }
-wasmtime-wasi = "34.0.1"
-surrealdb = { version = "2.3.6", default-features = false, features = ["kv-mem"] }
-uuid = "1.8.0"
-chrono = "0.4.38"
-tempfile = "3.10.0"
+tempfile = "3.10.1"
+thiserror = "1.0.63"
+tokio = { version = "1.44.2", default-features = false }
+toml = "0.8.10"
 walrus = "0.20.3"
 wasm-opt = "0.116.0"
-surrealml-llms = { git = "https://github.com/surrealdb/surrealml.git", branch = "llm-integration", package = "surrealml-llms" }
-surrealml-tokenizers = { git = "https://github.com/surrealdb/surrealml.git", branch = "llm-integration", package = "surrealml-tokenizers" }
-candle-core = "0.9.1"
-
+wasmtime = { version = "34.0.1", default-features = false, features = ["cranelift", "winch"] }
+wasmtime-wasi = "34.0.1"
+zstd = "0.13.0"
 
 [workspace.lints.clippy]
 
