@@ -1,6 +1,6 @@
 [package]
 name = "demo"
-version.workspace = true
+version = "0.0.0"
 description = "Demo for Surrealism"
 publish = false
 edition.workspace = true
