@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: 'Release stage'
+        required: true
+        type: choice
+        options:
+          - stage1-lib
+          - stage2-cli
+      dry_run:
+        description: 'Dry run (skip actual publish)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+jobs:
+  release-stage1:
+    if: inputs.stage == 'stage1-lib'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Publish core crates
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            cargo publish --workspace --exclude surrealism-cli --dry-run
+          else
+            cargo publish --workspace --exclude surrealism-cli
+          fi
+
+  release-stage2:
+    if: inputs.stage == 'stage2-cli'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify surrealdb-core is available
+        run: |
+          echo "Checking if surrealdb-core with updated surrealism-runtime is available..."
+          cargo check -p surrealism-cli || {
+            echo "Error: Cannot build surrealism-cli. Make sure surrealdb-core has been updated."
+            exit 1
+          }
+
+      - name: Publish surrealism-cli
+        run: |
+          cd crates/surrealism-cli
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            cargo publish --dry-run
+          else
+            cargo publish
+          fi
+
