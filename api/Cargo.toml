@@ -1,13 +1,16 @@
 [package]
-name = "surrealism-webhook"
+name = "surrealism-api"
 version = "0.1.0"
 edition = "2024"
 authors = ["Tobie Morgan Hitchcock <tobie@surrealdb.com>"]
-description = "Send HTTP/HTTPS webhook events from Surrealism (Slack, Discord, generic webhooks, etc.)"
+description = "Third-party API integrations for Surrealism (Discord, Slack, ...)"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/surrealdb/surrealism"
 publish = false
 
+# Each module in this repo is an independent Cargo project (its own workspace,
+# own Cargo.lock) so it can be built, versioned, and eventually published on
+# its own.
 [workspace]
 
 [lib]
@@ -18,9 +21,6 @@ surrealism = "0.5"
 surrealdb-types = "3.2"
 anyhow = "1"
 serde_json = "1"
-url = "2"
-rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
-webpki-roots = "0.26"
 
 [lints.clippy]
 allow_attributes = "allow"

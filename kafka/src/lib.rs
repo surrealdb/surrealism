@@ -8,17 +8,20 @@
 //! leader for partition 0 of `topic` (true of a single-broker Kafka, e.g. for
 //! local development).
 //!
-//! Register with e.g. `DEFINE MODULE kafka AS f"bucket:/kafka.surli";` and
-//! call `kafka::produce("10.0.0.5:9092", "events", "user-42", "{...}")`.
-//! `broker` must be a literal IP address: guest code cannot resolve
-//! hostnames (WASI's ip-name-lookup is disabled to prevent DNS-tunnelling
-//! exfiltration — see the `webhook` module's README for the same
-//! constraint and its workaround for hostname-based targets).
+//! Register with e.g. `DEFINE MODULE mod::kafka AS f"bucket:/kafka.surli";`
+//! and call `mod::kafka::produce("10.0.0.5:9092", "events", "user-42",
+//! {type: "signup"})`. `broker` must be a literal IP address: guest code
+//! cannot resolve hostnames (WASI's ip-name-lookup is disabled to prevent
+//! DNS-tunnelling exfiltration — see the `api` module's README for the same
+//! constraint and its workaround for hostname-based targets, which doesn't
+//! apply here since a Kafka broker has no equivalent host-side escape
+//! hatch).
 
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpStream};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use surrealdb_types::Value;
 use surrealism::surrealism;
 
 const PRODUCE_API_KEY: i16 = 0;
@@ -253,7 +256,28 @@ fn current_timestamp_millis() -> i64 {
 		.unwrap_or(0)
 }
 
-fn produce_impl(broker: &str, topic: &str, key: Option<&str>, value: &str) -> Result<i64, String> {
+/// Converts a SurrealQL value into Kafka record-value bytes. `NONE`/`NULL`
+/// map to a Kafka tombstone (no value, common for deletion markers on
+/// compacted topics); a plain string is sent as its raw UTF-8 bytes (not
+/// re-quoted as a JSON string); raw `bytes` are sent as-is; anything else
+/// (objects, arrays, numbers, records, etc.) is sent as its JSON encoding —
+/// the same "raw string/bytes, JSON otherwise" rule the host's own
+/// `http::post` uses for request bodies.
+fn value_to_kafka_bytes(value: Value) -> Option<Vec<u8>> {
+	match value {
+		Value::None | Value::Null => None,
+		Value::String(s) => Some(s.into_bytes()),
+		Value::Bytes(b) => Some(b.into_inner().to_vec()),
+		other => Some(other.into_json_value().to_string().into_bytes()),
+	}
+}
+
+fn produce_impl(
+	broker: &str,
+	topic: &str,
+	key: Option<&str>,
+	value: Option<&[u8]>,
+) -> Result<i64, String> {
 	let addr: SocketAddr = broker.parse().map_err(|_| {
 		format!(
 			"'{broker}' is not a literal ip:port address. Guest code cannot resolve hostnames \
@@ -262,8 +286,7 @@ fn produce_impl(broker: &str, topic: &str, key: Option<&str>, value: &str) -> Re
 	})?;
 	let mut stream = TcpStream::connect(addr).map_err(|e| format!("Failed to connect to {broker}: {e}"))?;
 
-	let record_batch =
-		encode_record_batch(key.map(str::as_bytes), Some(value.as_bytes()), current_timestamp_millis());
+	let record_batch = encode_record_batch(key.map(str::as_bytes), value, current_timestamp_millis());
 	// acks=1 (leader only), 5s broker-side timeout, always partition 0.
 	let request = encode_produce_request(1, 1, 5000, topic, 0, &record_batch);
 
@@ -280,10 +303,14 @@ fn produce_impl(broker: &str, topic: &str, key: Option<&str>, value: &str) -> Re
 }
 
 /// Publishes a single record to partition 0 of `topic` on `broker`
-/// (`ip:port`). `key` may be empty to publish an unkeyed record. Returns the
-/// offset the broker assigned to the record.
+/// (`ip:port`). `key` may be empty to publish an unkeyed record. `value` may
+/// be any SurrealQL value — a string is sent as raw bytes, `bytes` as-is,
+/// `NONE`/`NULL` as a tombstone (no value), and anything else (an object,
+/// array, number, etc.) as its JSON encoding. Returns the offset the broker
+/// assigned to the record.
 #[surrealism]
-fn produce(broker: String, topic: String, key: String, value: String) -> Result<i64, String> {
+fn produce(broker: String, topic: String, key: String, value: Value) -> Result<i64, String> {
 	let key = if key.is_empty() { None } else { Some(key.as_str()) };
-	produce_impl(&broker, &topic, key, &value)
+	let value = value_to_kafka_bytes(value);
+	produce_impl(&broker, &topic, key, value.as_deref())
 }

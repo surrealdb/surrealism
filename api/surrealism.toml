@@ -1,0 +1,20 @@
+[package]
+organisation = "surrealdb"
+name = "api"
+version = "1.0.0"
+
+[capabilities]
+# Every integration in this crate delegates its outbound request to the
+# SurrealDB host's own native `http::post` (via `surrealism::run`), rather
+# than opening a raw socket from the guest — guest code cannot resolve
+# hostnames itself (WASI's ip-name-lookup is disabled to prevent
+# DNS-tunnelling exfiltration), and every integration here targets a
+# hostname, not a literal IP.
+allow_functions = ["http::post"]
+
+# One entry per integration's host. IMPORTANT: bare hostname, no port — the
+# host's outbound HTTP client re-validates every DNS answer through a
+# resolver that checks the *hostname* (unqualified, no port) before
+# resolving, so a port-qualified entry like "discord.com:443" is silently
+# rejected at the resolver step even though it looks more precise.
+allow_net = ["discord.com", "hooks.slack.com"]

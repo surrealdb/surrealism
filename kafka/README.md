@@ -8,13 +8,20 @@ against the [Kafka protocol spec](https://kafka.apache.org/protocol.html).
 ```surql
 DEFINE MODULE mod::kafka AS f"bucket:/kafka.surli";
 
-RETURN mod::kafka::produce("10.0.0.5:9092", "events", "user-42", '{"type":"signup"}');
+RETURN mod::kafka::produce("10.0.0.5:9092", "events", "user-42", { type: "signup" });
 -- returns the offset the broker assigned, e.g. 42
 ```
 
 | Function | Signature | Description |
 |---|---|---|
-| `produce` | `(broker: string, topic: string, key: string, value: string) -> int` | Publishes one record to partition 0 of `topic`. Pass `key = ""` for an unkeyed record. Returns the assigned offset. |
+| `produce` | `(broker: string, topic: string, key: string, value: value) -> int` | Publishes one record to partition 0 of `topic`. Pass `key = ""` for an unkeyed record. Returns the assigned offset. |
+
+`value` accepts any SurrealQL value: a string is sent as its raw UTF-8 bytes
+(not re-quoted as a JSON string), `bytes` as-is, `NONE`/`NULL` as a Kafka
+tombstone (no value — common for deletion markers on compacted topics), and
+anything else (an object, array, number, etc.) as its JSON encoding. This
+mirrors the "raw string/bytes, JSON otherwise" rule the host's own
+`http::post` uses for request bodies.
 
 ## What this deliberately does not do
 
@@ -38,9 +45,11 @@ an issue if a specific missing piece would make this useful for your setup.
 `broker` must be a literal `ip:port` — guest code cannot resolve hostnames
 (WASI's `ip-name-lookup` is disabled to prevent DNS-tunnelling exfiltration).
 If your Kafka deployment is only reachable by hostname, resolve it once
-outside the module and pass the IP directly. See the `webhook` module's
-README for the same constraint and how it works around it for HTTP targets
-by delegating to the host.
+outside the module and pass the IP directly. Unlike HTTP targets, there's no
+host-side escape hatch to delegate to here (no built-in `kafka::produce`
+SurrealQL function to hand this off to), so this constraint is unavoidable
+for this module. See the `api` module's README for the delegation pattern
+used for HTTP.
 
 ## Verification
 
