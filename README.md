@@ -43,36 +43,24 @@ RETURN mod::color::hex_to_rgb("#3366ff");
 crate, so its functions are addressed with an extra segment:
 `mod::api::discord::send(...)`, `mod::api::slack::send(...)`.
 
-## Guest sandboxing: what these modules can and can't reach
+## Guest sandboxing
 
 Surrealism modules run inside a WASI sandbox with a capabilities model
 declared per-module in `surrealism.toml` (`allow_net`, `allow_functions`,
 etc.), enforced by the host at connect time — see each module's own
-`surrealism.toml` for the specific grants it needs and why.
+`surrealism.toml` for the specific grants it needs.
 
-One constraint applies across all of them and is worth understanding up
-front: **guest code cannot resolve hostnames.** WASI's `ip-name-lookup` is
-intentionally disabled at the runtime level to prevent DNS-tunnelling data
-exfiltration, so any function that opens a raw socket directly from the guest
-(`kafka::produce`) requires the target to be given as a literal IP address,
-not a hostname.
-
-`api`'s integrations sidestep this: since Discord, Slack, and friends are
-always hostname-addressed (and often behind a CDN with rotating IPs), each
-one builds its JSON payload and delegates the actual request to the
-SurrealDB host's own native `http::post` function via `surrealism::run(...)`,
-since the host has full, unsandboxed DNS and TLS. See that module's README
-for the capability configuration this needs (it's a little unintuitive: the
-allowed hostname must be listed **without** a port). `kafka` has no
-equivalent escape hatch (there's no built-in `kafka::produce` to delegate
-to), so its `broker` argument is stuck being IP-only.
+Guest code cannot resolve hostnames, so any function that opens a socket
+directly from the guest (`kafka::produce`) needs a literal IP address, not a
+hostname. `api`'s integrations instead delegate to the host's `http::post`,
+which can resolve hostnames — see that module's README for its capability
+setup.
 
 ## Dependencies
 
 Each module depends on the published [`surrealism`](https://crates.io/crates/surrealism)
 and [`surrealdb-types`](https://crates.io/crates/surrealdb-types) crates from
-crates.io — there's no path or git dependency on the main SurrealDB repo, so
-every module here builds standalone from a fresh checkout.
+crates.io.
 
 ## License
 

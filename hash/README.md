@@ -22,9 +22,4 @@ RETURN mod::hash::hex::decode("68656c6c6f");  -- 'hello'
 | `hex::encode` | `(input: string) -> string` | Lowercase hex encode |
 | `hex::decode` | `(input: string) -> string` | Hex decode (must be valid UTF-8) |
 
-## No UUID/ULID functions
-
-SurrealDB already generates these natively — `rand::uuid()` /
-`rand::uuid::v4()` / `rand::uuid::v7()` and `rand::ulid()` — so a
-Surrealism-side equivalent would just be redundant indirection through a
-module for something a plain SurrealQL call already does.
+For UUID/ULID generation, use SurrealDB's native `rand::uuid()` / `rand::ulid()`.

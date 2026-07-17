@@ -4,21 +4,11 @@
 //! Register with e.g. `DEFINE MODULE mod::hash AS f"bucket:/hash.surli";`
 //! and call `mod::hash::sha256("hello")`, `mod::hash::base64::encode("hi")`,
 //! `mod::hash::hex::decode("...")`, etc.
-//!
-//! Deliberately not included: UUID/ULID generation. SurrealDB already has
-//! these natively — `rand::uuid()` / `rand::uuid::v4()` / `rand::uuid::v7()`
-//! and `rand::ulid()` — so a Surrealism-side equivalent would just be
-//! redundant.
 
 use hmac::{Hmac, Mac};
 use md5::Md5;
 use sha2::{Digest, Sha256, Sha512};
 use surrealism::surrealism;
-
-// `::hex::encode` below (leading `::`) rather than bare `hex::encode`: this
-// crate root also declares a `mod hex` (see below), which would otherwise
-// shadow the `hex` dependency for any unqualified `hex::...` path written at
-// the crate root.
 
 /// SHA-256 digest of `input`, as a lowercase hex string.
 #[surrealism]
@@ -32,10 +22,8 @@ fn sha512(input: String) -> String {
 	::hex::encode(Sha512::digest(input.as_bytes()))
 }
 
-/// MD5 digest of `input`, as a lowercase hex string.
-///
-/// MD5 is not cryptographically secure; use it only for checksums or
-/// compatibility with legacy systems, not for security-sensitive purposes.
+/// MD5 digest of `input`, as a lowercase hex string. Not cryptographically
+/// secure; use for checksums, not security.
 #[surrealism]
 fn md5(input: String) -> String {
 	::hex::encode(Md5::digest(input.as_bytes()))
