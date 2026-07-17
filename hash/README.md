@@ -1,14 +1,14 @@
 # surrealism-hash
 
-Hashing, HMAC, and encoding functions for Surrealism. Uses `sha2`, `md-5`, `hmac`,
-`base64`, `hex`, `uuid`, and `ulid`.
+Hashing and HMAC functions for Surrealism, plus `base64`/`hex` encoding
+submodules. Uses `sha2`, `md-5`, `hmac`, `base64`, and `hex`.
 
 ```surql
 DEFINE MODULE mod::hash AS f"bucket:/hash.surli";
 
-RETURN mod::hash::sha256("hello");     -- '2cf24dba...'
-RETURN mod::hash::uuid_v4();
-RETURN mod::hash::base64_encode("hello"); -- 'aGVsbG8='
+RETURN mod::hash::sha256("hello");            -- '2cf24dba...'
+RETURN mod::hash::base64::encode("hello");    -- 'aGVsbG8='
+RETURN mod::hash::hex::decode("68656c6c6f");  -- 'hello'
 ```
 
 | Function | Signature | Description |
@@ -17,9 +17,14 @@ RETURN mod::hash::base64_encode("hello"); -- 'aGVsbG8='
 | `sha512` | `(input: string) -> string` | SHA-512 hex digest |
 | `md5` | `(input: string) -> string` | MD5 hex digest (checksums only, not secure) |
 | `hmac_sha256` | `(input: string, key: string) -> string` | HMAC-SHA256 hex digest |
-| `base64_encode` | `(input: string) -> string` | Standard base64 encode |
-| `base64_decode` | `(input: string) -> string` | Standard base64 decode (must be valid UTF-8) |
-| `hex_encode` | `(input: string) -> string` | Lowercase hex encode |
-| `hex_decode` | `(input: string) -> string` | Hex decode (must be valid UTF-8) |
-| `uuid_v4` | `() -> string` | Random UUID v4 |
-| `ulid` | `() -> string` | New ULID (sortable, timestamp-prefixed) |
+| `base64::encode` | `(input: string) -> string` | Standard base64 encode |
+| `base64::decode` | `(input: string) -> string` | Standard base64 decode (must be valid UTF-8) |
+| `hex::encode` | `(input: string) -> string` | Lowercase hex encode |
+| `hex::decode` | `(input: string) -> string` | Hex decode (must be valid UTF-8) |
+
+## No UUID/ULID functions
+
+SurrealDB already generates these natively — `rand::uuid()` /
+`rand::uuid::v4()` / `rand::uuid::v7()` and `rand::ulid()` — so a
+Surrealism-side equivalent would just be redundant indirection through a
+module for something a plain SurrealQL call already does.

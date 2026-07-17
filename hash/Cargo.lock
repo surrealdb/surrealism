@@ -1424,8 +1424,6 @@ dependencies = [
  "sha2",
  "surrealdb-types",
  "surrealism",
- "ulid",
- "uuid",
 ]
 
 [[package]]
