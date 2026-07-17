@@ -1,0 +1,10 @@
+[package]
+organisation = "surrealdb"
+name = "kafka"
+version = "1.0.0"
+
+[capabilities]
+# Broker addresses must be a literal ip:port (guest code cannot resolve
+# hostnames — see the module README), e.g.
+# allow_net = ["10.0.0.5:9092"]
+allow_net = ["127.0.0.1"]

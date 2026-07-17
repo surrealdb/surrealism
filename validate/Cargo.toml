@@ -1,0 +1,23 @@
+[package]
+name = "surrealism-validate"
+version = "0.1.0"
+edition = "2024"
+authors = ["Tobie Morgan Hitchcock <tobie@surrealdb.com>"]
+description = "Format validation functions for Surrealism (email, URL, IBAN, credit card, etc.)"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/surrealdb/surrealism"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+surrealism = "0.5"
+surrealdb-types = "3.2"
+regex = "1"
+url = "2"
+
+[lints.clippy]
+allow_attributes = "allow"

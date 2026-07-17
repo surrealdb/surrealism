@@ -1,0 +1,23 @@
+[package]
+organisation = "surrealdb"
+name = "webhook"
+version = "1.0.0"
+
+[capabilities]
+# `post` / `post_with_headers` / `get` connect directly from inside the WASM
+# guest, which cannot resolve hostnames (WASI's ip-name-lookup is disabled to
+# prevent DNS-tunnelling exfiltration) — so entries used for those must be a
+# literal IP, e.g. "203.0.113.10:443". 127.0.0.1 is allowed here for local
+# testing.
+#
+# `post_via_host` instead delegates to the SurrealDB host's own `http::post`
+# (see allow_functions below), so its entries are plain hostnames resolved by
+# the host — e.g. "hooks.slack.com". IMPORTANT: list the bare hostname with
+# NO port. The host's outbound HTTP client re-validates every DNS answer
+# through a resolver that checks the *hostname* (unqualified, no port) before
+# resolving, so a port-qualified entry like "hooks.slack.com:443" will be
+# silently rejected at the resolver step even though it looks more precise.
+allow_net = ["127.0.0.1", "httpbin.org"]
+
+# Required by `post_via_host`.
+allow_functions = ["http::post"]
