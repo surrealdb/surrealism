@@ -1,2 +1,0 @@
-[build]
-# rustflags = ["--cfg", "uuid_unstable", "--cfg", "surrealdb_unstable"]
