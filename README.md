@@ -7,16 +7,16 @@ own license files, buildable and versionable independently of the others.
 
 | Module | Crate | What it does |
 |---|---|---|
-| [`api/discord`](api/discord/) | `surrealism-discord` | Discord webhook messages and embeds |
-| [`api/slack`](api/slack/) | `surrealism-slack` | Slack Incoming Webhook messages |
 | [`color`](color/) | `surrealism-color` | Color conversion, manipulation, and WCAG accessibility checks |
+| [`discord`](discord/) | `surrealism-discord` | Discord webhook messages and embeds |
 | [`fake`](fake/) | `surrealism-fake` | Realistic fake data generation (names, addresses, lorem ipsum, etc.) |
 | [`hash`](hash/) | `surrealism-hash` | Hashing, HMAC, and base64/hex encoding |
 | [`html`](html/) | `surrealism-html` | HTML sanitization and extraction (text, title, links, meta) |
 | [`image`](image/) | `surrealism-image` | Image resize, thumbnail, format conversion, filters |
+| [`kafka`](kafka/) | `surrealism-kafka` | Minimal plaintext Kafka producer |
+| [`slack`](slack/) | `surrealism-slack` | Slack Incoming Webhook messages |
 | [`text`](text/) | `surrealism-text` | String case conversion, slugify, Levenshtein, HTML stripping |
 | [`validate`](validate/) | `surrealism-validate` | Format validation: email, URL, IBAN, credit card, phone, etc. |
-| [`kafka`](kafka/) | `surrealism-kafka` | Minimal plaintext Kafka producer |
 
 ## Building
 
@@ -41,11 +41,6 @@ DEFINE MODULE mod::color AS f"modules:/color.surli";
 RETURN mod::color::hex_to_rgb("#3366ff");
 ```
 
-`api/` groups related but independent modules in one directory for
-navigability — each is still its own crate, `DEFINE MODULE`, and capability
-grant (`mod::discord::send(...)`, `mod::slack::send(...)`), not a shared
-namespace, so using one doesn't pull in the others.
-
 ## Guest sandboxing
 
 Surrealism modules run inside a WASI sandbox with a capabilities model
@@ -55,9 +50,9 @@ etc.), enforced by the host at connect time — see each module's own
 
 Guest code cannot resolve hostnames, so any function that opens a socket
 directly from the guest (`kafka::produce`) needs a literal IP address, not a
-hostname. `api/discord` and `api/slack` instead delegate to the host's
-`http::post`, which can resolve hostnames — see each module's README for its
-capability setup.
+hostname. `discord` and `slack` instead delegate to the host's `http::post`,
+which can resolve hostnames — see each module's README for its capability
+setup.
 
 ## Dependencies
 
