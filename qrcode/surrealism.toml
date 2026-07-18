@@ -1,0 +1,4 @@
+[package]
+organisation = "surrealdb"
+name = "qrcode"
+version = "1.0.0"
