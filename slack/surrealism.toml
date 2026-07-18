@@ -5,4 +5,4 @@ version = "1.0.0"
 
 [capabilities]
 allow_functions = ["http::post"]
-allow_net = ["hooks.slack.com"]
+allow_net = ["hooks.slack.com", "slack.com"]
