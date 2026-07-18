@@ -1,0 +1,8 @@
+[package]
+organisation = "surrealdb"
+name = "mastodon"
+version = "1.0.0"
+
+[capabilities]
+allow_functions = ["http::post"]
+allow_net = []

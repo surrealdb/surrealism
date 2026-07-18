@@ -1,0 +1,8 @@
+[package]
+organisation = "surrealdb"
+name = "notion"
+version = "1.0.0"
+
+[capabilities]
+allow_functions = ["http::post", "http::get"]
+allow_net = ["api.notion.com"]

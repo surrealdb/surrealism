@@ -1,0 +1,8 @@
+[package]
+organisation = "surrealdb"
+name = "hibp"
+version = "1.0.0"
+
+[capabilities]
+allow_functions = ["http::get"]
+allow_net = ["api.pwnedpasswords.com"]
