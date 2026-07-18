@@ -5,4 +5,4 @@ version = "1.0.0"
 
 [capabilities]
 allow_functions = ["http::post"]
-allow_net = ["outlook.office.com"]
+allow_net = ["graph.microsoft.com"]
