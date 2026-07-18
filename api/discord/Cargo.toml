@@ -1,16 +1,13 @@
 [package]
-name = "surrealism-api"
+name = "surrealism-discord"
 version = "0.1.0"
 edition = "2024"
 authors = ["Tobie Morgan Hitchcock <tobie@surrealdb.com>"]
-description = "Third-party API integrations for Surrealism (Discord, Slack, ...)"
+description = "Discord webhook integration for Surrealism"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/surrealdb/surrealism"
 publish = false
 
-# Each module in this repo is an independent Cargo project (its own workspace,
-# own Cargo.lock) so it can be built, versioned, and eventually published on
-# its own.
 [workspace]
 
 [lib]

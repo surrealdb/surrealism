@@ -7,7 +7,8 @@ own license files, buildable and versionable independently of the others.
 
 | Module | Crate | What it does |
 |---|---|---|
-| [`api`](api/) | `surrealism-api` | Third-party API integrations: `api::discord`, `api::slack`, ... |
+| [`api/discord`](api/discord/) | `surrealism-discord` | Discord webhook messages and embeds |
+| [`api/slack`](api/slack/) | `surrealism-slack` | Slack Incoming Webhook messages |
 | [`color`](color/) | `surrealism-color` | Color conversion, manipulation, and WCAG accessibility checks |
 | [`fake`](fake/) | `surrealism-fake` | Realistic fake data generation (names, addresses, lorem ipsum, etc.) |
 | [`hash`](hash/) | `surrealism-hash` | Hashing, HMAC, and base64/hex encoding |
@@ -40,9 +41,10 @@ DEFINE MODULE mod::color AS f"modules:/color.surli";
 RETURN mod::color::hex_to_rgb("#3366ff");
 ```
 
-`api` groups its integrations as nested `#[surrealism] mod`s inside one
-crate, so its functions are addressed with an extra segment:
-`mod::api::discord::send(...)`, `mod::api::slack::send(...)`.
+`api/` groups related but independent modules in one directory for
+navigability — each is still its own crate, `DEFINE MODULE`, and capability
+grant (`mod::discord::send(...)`, `mod::slack::send(...)`), not a shared
+namespace, so using one doesn't pull in the others.
 
 ## Guest sandboxing
 
@@ -53,9 +55,9 @@ etc.), enforced by the host at connect time — see each module's own
 
 Guest code cannot resolve hostnames, so any function that opens a socket
 directly from the guest (`kafka::produce`) needs a literal IP address, not a
-hostname. `api`'s integrations instead delegate to the host's `http::post`,
-which can resolve hostnames — see that module's README for its capability
-setup.
+hostname. `api/discord` and `api/slack` instead delegate to the host's
+`http::post`, which can resolve hostnames — see each module's README for its
+capability setup.
 
 ## Dependencies
 
