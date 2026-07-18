@@ -1,0 +1,22 @@
+[package]
+name = "surrealism-base58"
+version = "0.1.0"
+edition = "2024"
+authors = ["Tobie Morgan Hitchcock <tobie@surrealdb.com>"]
+description = "Base58 and Base58Check encoding for Surrealism"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/surrealdb/surrealism"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+surrealism = "0.5"
+surrealdb-types = "3.2"
+bs58 = { version = "0.5", features = ["check"] }
+
+[lints.clippy]
+allow_attributes = "allow"

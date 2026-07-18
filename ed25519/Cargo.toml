@@ -1,0 +1,23 @@
+[package]
+name = "surrealism-ed25519"
+version = "0.1.0"
+edition = "2024"
+authors = ["Tobie Morgan Hitchcock <tobie@surrealdb.com>"]
+description = "Ed25519 signing and verification for Surrealism"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/surrealdb/surrealism"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+surrealism = "0.5"
+surrealdb-types = "3.2"
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+
+[lints.clippy]
+allow_attributes = "allow"

@@ -1,0 +1,8 @@
+[package]
+organisation = "surrealdb"
+name = "twilio"
+version = "1.0.0"
+
+[capabilities]
+allow_functions = ["http::post"]
+allow_net = ["api.twilio.com"]

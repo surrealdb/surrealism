@@ -1,0 +1,4 @@
+[package]
+organisation = "surrealdb"
+name = "base58"
+version = "1.0.0"

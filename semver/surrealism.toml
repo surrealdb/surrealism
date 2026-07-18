@@ -1,0 +1,4 @@
+[package]
+organisation = "surrealdb"
+name = "semver"
+version = "1.0.0"

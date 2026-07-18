@@ -1,0 +1,4 @@
+[package]
+organisation = "surrealdb"
+name = "stem"
+version = "1.0.0"

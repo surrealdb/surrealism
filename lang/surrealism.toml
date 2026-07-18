@@ -1,0 +1,4 @@
+[package]
+organisation = "surrealdb"
+name = "lang"
+version = "1.0.0"
