@@ -11,6 +11,7 @@ own license files, buildable and versionable independently of the others.
 | [`color`](color/) | `surrealism-color` | Color conversion, manipulation, and WCAG accessibility checks |
 | [`fake`](fake/) | `surrealism-fake` | Realistic fake data generation (names, addresses, lorem ipsum, etc.) |
 | [`hash`](hash/) | `surrealism-hash` | Hashing, HMAC, and base64/hex encoding |
+| [`html`](html/) | `surrealism-html` | HTML sanitization and extraction (text, title, links, meta) |
 | [`image`](image/) | `surrealism-image` | Image resize, thumbnail, format conversion, filters |
 | [`text`](text/) | `surrealism-text` | String case conversion, slugify, Levenshtein, HTML stripping |
 | [`validate`](validate/) | `surrealism-validate` | Format validation: email, URL, IBAN, credit card, phone, etc. |
