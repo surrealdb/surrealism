@@ -1,0 +1,29 @@
+[[test]]
+name = "parses a mapping containing a sequence"
+fn = "to_json"
+args = ["'name: surrealdb\\nport: 8000\\ntags:\\n  - db\\n  - graph\\n'"]
+expect = "{ name: 'surrealdb', port: 8000, tags: ['db', 'graph'] }"
+
+[[test]]
+name = "parses a nested mapping with a boolean"
+fn = "to_json"
+args = ["'server:\\n  host: localhost\\n  tls: true\\n'"]
+expect = "{ server: { host: 'localhost', tls: true } }"
+
+[[test]]
+name = "rejects a badly indented document"
+fn = "to_json"
+args = ["'a: 1\\n  b: 2\\n c: 3\\n'"]
+error = "mapping values are not allowed"
+
+[[test]]
+name = "serialises an object with a list"
+fn = "from_json"
+args = ["{ name: 'surrealdb', tags: ['db', 'graph'] }"]
+expect = "'name: surrealdb\\ntags:\\n- db\\n- graph\\n'"
+
+[[test]]
+name = "serialises a bare scalar"
+fn = "from_json"
+args = ["42"]
+expect = "'42\\n'"

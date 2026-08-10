@@ -21,11 +21,7 @@ fn post_messages(api_key: &str, body: Value) -> Result<Value> {
 	surrealism::run(
 		"http::post".to_string(),
 		None,
-		(
-			"https://api.anthropic.com/v1/messages".to_string(),
-			body,
-			auth_headers(api_key),
-		),
+		("https://api.anthropic.com/v1/messages".to_string(), body, auth_headers(api_key)),
 	)
 	.context("Call to host 'http::post' failed")
 }
@@ -42,7 +38,12 @@ fn first_text(response: &Value) -> Result<String, String> {
 
 /// Sends an array of `{ role, content }` messages to a model and returns the generated text.
 #[surrealism]
-fn chat(api_key: String, model: String, messages: Value, max_tokens: i64) -> Result<String, String> {
+fn chat(
+	api_key: String,
+	model: String,
+	messages: Value,
+	max_tokens: i64,
+) -> Result<String, String> {
 	let response = post_messages(
 		&api_key,
 		json!({ "model": model, "max_tokens": max_tokens, "messages": messages }),
@@ -53,7 +54,12 @@ fn chat(api_key: String, model: String, messages: Value, max_tokens: i64) -> Res
 
 /// Sends a single user prompt to a model and returns the generated text.
 #[surrealism]
-fn generate(api_key: String, model: String, prompt: String, max_tokens: i64) -> Result<String, String> {
+fn generate(
+	api_key: String,
+	model: String,
+	prompt: String,
+	max_tokens: i64,
+) -> Result<String, String> {
 	let response = post_messages(
 		&api_key,
 		json!({

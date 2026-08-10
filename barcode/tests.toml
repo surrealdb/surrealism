@@ -1,0 +1,35 @@
+[[test]]
+name = "renders an alphanumeric payload as a Code128 PNG"
+fn = "code128"
+args = ["'HELLO123'"]
+contains = 'b"89504E470D0A1A0A0000000D494844520000007B00000050'
+
+[[test]]
+name = "rejects characters outside the Code128 character set"
+fn = "code128"
+args = ["'héllo'"]
+error = "Barcode data is invalid"
+
+[[test]]
+name = "renders a 13-digit payload as a 95-module EAN-13 PNG"
+fn = "ean13"
+args = ["'5901234123457'"]
+contains = 'b"89504E470D0A1A0A0000000D494844520000005F00000050'
+
+[[test]]
+name = "accepts a 12-digit payload and appends the check digit"
+fn = "ean13"
+args = ["'590123412345'"]
+contains = 'b"89504E470D0A1A0A0000000D494844520000005F00000050'
+
+[[test]]
+name = "rejects a payload that is neither 12 nor 13 digits"
+fn = "ean13"
+args = ["'12345'"]
+error = "Barcode data length is invalid"
+
+[[test]]
+name = "rejects a non-numeric EAN-13 payload"
+fn = "ean13"
+args = ["'59012341234AB'"]
+error = "Barcode data is invalid"

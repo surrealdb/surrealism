@@ -1,0 +1,181 @@
+[[test]]
+name = "generates a full name"
+fn = "name"
+args = []
+
+[[test]]
+name = "generates a first name"
+fn = "first_name"
+args = []
+
+[[test]]
+name = "generates a last name"
+fn = "last_name"
+args = []
+
+[[test]]
+name = "generates an address-shaped email"
+fn = "email"
+args = []
+contains = "@"
+
+[[test]]
+name = "generates a username"
+fn = "username"
+args = []
+
+[[test]]
+name = "generates a password of the requested length"
+fn = "password"
+args = ["12"]
+
+[[test]]
+name = "rejects a negative password length"
+fn = "password"
+args = ["(-1)"]
+error = "length must not be negative"
+
+[[test]]
+name = "generates a phone number"
+fn = "phone_number"
+args = []
+
+[[test]]
+name = "generates a company name"
+fn = "company"
+args = []
+
+[[test]]
+name = "generates a job title"
+fn = "job_title"
+args = []
+
+[[test]]
+name = "generates an industry name"
+fn = "industry"
+args = []
+
+[[test]]
+name = "generates a street address"
+fn = "street_address"
+args = []
+
+[[test]]
+name = "generates a city name"
+fn = "city"
+args = []
+
+[[test]]
+name = "generates a state name"
+fn = "state"
+args = []
+
+[[test]]
+name = "generates a country name"
+fn = "country"
+args = []
+
+[[test]]
+name = "generates a zip code"
+fn = "zip_code"
+args = []
+
+[[test]]
+name = "generates a latitude"
+fn = "latitude"
+args = []
+
+[[test]]
+name = "generates a longitude"
+fn = "longitude"
+args = []
+
+[[test]]
+name = "generates a single word"
+fn = "word"
+args = []
+
+[[test]]
+name = "generates a sentence"
+fn = "sentence"
+args = ["6"]
+
+[[test]]
+name = "rejects a negative word count"
+fn = "sentence"
+args = ["(-1)"]
+error = "word_count must not be negative"
+
+[[test]]
+name = "generates a paragraph"
+fn = "paragraph"
+args = ["3"]
+
+[[test]]
+name = "rejects a negative sentence count"
+fn = "paragraph"
+args = ["(-2)"]
+error = "sentence_count must not be negative"
+
+[[test]]
+name = "generates a hyphenated UUID"
+fn = "uuid"
+args = []
+contains = "-"
+
+[[test]]
+name = "generates a dotted IPv4 address"
+fn = "ipv4"
+args = []
+contains = "."
+
+[[test]]
+name = "generates a colon-separated IPv6 address"
+fn = "ipv6"
+args = []
+contains = ":"
+
+[[test]]
+name = "generates a browser user-agent string"
+fn = "user_agent"
+args = []
+
+[[test]]
+name = "generates a hash-prefixed hex colour"
+fn = "color_hex"
+args = []
+contains = "#"
+
+[[test]]
+name = "generates a boolean"
+fn = "boolean"
+args = []
+
+[[test]]
+name = "returns the only value in a single-value range"
+fn = "number"
+args = ["5", "5"]
+expect = "5"
+
+[[test]]
+name = "handles a negative single-value range"
+fn = "number"
+args = ["(-3)", "(-3)"]
+expect = "-3"
+
+[[test]]
+name = "rejects a range whose minimum exceeds its maximum"
+fn = "number"
+args = ["10", "1"]
+error = "min (10) must be <= max (1)"
+
+[[test]]
+name = "generates a hyphenated calendar date"
+fn = "date"
+args = []
+contains = "-"
+
+[[test]]
+name = "generates a credit card number"
+fn = "credit_card_number"
+args = []

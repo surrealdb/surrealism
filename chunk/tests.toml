@@ -1,0 +1,89 @@
+[[test]]
+name = "splits into overlapping fixed-width windows"
+fn = "fixed"
+args = ["'abcdefghijklmnop'", "6", "2"]
+expect = "['abcdef', 'efghij', 'ijklmn', 'mnop']"
+
+[[test]]
+name = "rejects a size of zero"
+fn = "fixed"
+args = ["'abc'", "0", "0"]
+error = "The size argument must be a positive integer, got: 0"
+
+[[test]]
+name = "rejects an overlap as large as the size"
+fn = "fixed"
+args = ["'abc'", "4", "4"]
+error = "The overlap (4) must be less than the size (4)"
+
+[[test]]
+name = "rejects a negative overlap"
+fn = "fixed"
+args = ["'abc'", "4", "(-1)"]
+error = "The overlap argument must be a non-negative integer, got: -1"
+
+[[test]]
+name = "groups sentences up to the size, repeating the overlap"
+fn = "sentence"
+args = ["'One fish. Two fish. Red fish. Blue fish.'", "22", "1"]
+expect = "['One fish. Two fish.', 'Two fish. Red fish.', 'Red fish. Blue fish.']"
+
+[[test]]
+name = "keeps everything in one chunk when it fits"
+fn = "sentence"
+args = ["'One fish. Two fish. Red fish. Blue fish.'", "200", "0"]
+expect = "['One fish. Two fish. Red fish. Blue fish.']"
+
+[[test]]
+name = "does not break a sentence at an abbreviation"
+fn = "sentence"
+args = ["'Dr. Who arrived. He waited.'", "200", "0"]
+expect = "['Dr. Who arrived. He waited.']"
+
+[[test]]
+name = "groups paragraphs up to the size, repeating the overlap"
+fn = "paragraph"
+args = ["'First para.\\n\\nSecond para.\\n\\nThird para.'", "26", "1"]
+expect = "['First para. Second para.', 'Second para. Third para.']"
+
+[[test]]
+name = "packs paragraphs without repetition when the overlap is zero"
+fn = "paragraph"
+args = ["'First para.\\n\\nSecond para.\\n\\nThird para.'", "26", "0"]
+expect = "['First para. Second para.', 'Third para.']"
+
+[[test]]
+name = "groups paragraphs, repeating the overlap"
+fn = "recursive"
+args = ["'Alpha para.\\n\\nBeta para.\\n\\nGamma para.'", "24", "1"]
+expect = "['Alpha para. Beta para.', 'Beta para. Gamma para.']"
+
+[[test]]
+name = "falls back to sentences when a paragraph exceeds the size"
+fn = "recursive"
+args = ["'One fish. Two fish. Red fish. Blue fish.'", "20", "0"]
+expect = "['One fish. Two fish.', 'Red fish. Blue fish.']"
+
+[[test]]
+name = "rejects an overlap as large as the size when chunking recursively"
+fn = "recursive"
+args = ["'x'", "10", "10"]
+error = "The overlap (10) must be less than the size (10)"
+
+[[test]]
+name = "splits at headings, keeping each heading atop its section"
+fn = "markdown"
+args = ["'# Title\\nIntro line.\\n\\n## Section\\nBody line.'", "24", "0"]
+expect = "['# Title\\nIntro line.', '## Section\\nBody line.']"
+
+[[test]]
+name = "merges sections that together fit the size"
+fn = "markdown"
+args = ["'# Title\\nIntro line.\\n\\n## Section\\nBody line.'", "200", "0"]
+expect = "['# Title\\nIntro line. ## Section\\nBody line.']"
+
+[[test]]
+name = "rejects a negative size when chunking markdown"
+fn = "markdown"
+args = ["'# Title'", "(-1)", "0"]
+error = "The size argument must be a positive integer, got: -1"

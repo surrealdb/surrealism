@@ -24,13 +24,14 @@ fn hex_upper(bytes: &[u8]) -> String {
 fn check_password(password: String) -> Result<i64, String> {
 	let hash = hex_upper(&Sha1::digest(password.as_bytes()));
 	let (prefix, suffix) = hash.split_at(5);
-	let body = get_text_with_headers(&format!("https://api.pwnedpasswords.com/range/{prefix}"), json!({}))
-		.map_err(|e| e.to_string())?;
+	let body =
+		get_text_with_headers(&format!("https://api.pwnedpasswords.com/range/{prefix}"), json!({}))
+			.map_err(|e| e.to_string())?;
 	for line in body.lines() {
-		if let Some((line_suffix, count)) = line.trim().split_once(':') {
-			if line_suffix.eq_ignore_ascii_case(suffix) {
-				return count.trim().parse::<i64>().map_err(|e| e.to_string());
-			}
+		if let Some((line_suffix, count)) = line.trim().split_once(':')
+			&& line_suffix.eq_ignore_ascii_case(suffix)
+		{
+			return count.trim().parse::<i64>().map_err(|e| e.to_string());
 		}
 	}
 	Ok(0)

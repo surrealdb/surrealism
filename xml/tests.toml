@@ -1,0 +1,35 @@
+[[test]]
+name = "uses the root element as the single top-level key"
+fn = "to_json"
+args = ["'<greeting>hello</greeting>'"]
+expect = "{ greeting: 'hello' }"
+
+[[test]]
+name = "collects repeated sibling tags into an array"
+fn = "to_json"
+args = ["'<root><item>a</item><item>b</item></root>'"]
+expect = "{ root: { item: ['a', 'b'] } }"
+
+[[test]]
+name = "prefixes attributes with @ and moves text under #text"
+fn = "to_json"
+args = ["'<note id=\"1\" lang=\"en\">hello</note>'"]
+expect = "{ note: { \"#text\": 'hello', \"@id\": '1', \"@lang\": 'en' } }"
+
+[[test]]
+name = "skips the declaration and nests child elements"
+fn = "to_json"
+args = ["'<?xml version=\"1.0\"?><catalog><book isbn=\"123\"><title>Dune</title><author>Herbert</author></book></catalog>'"]
+expect = "{ catalog: { book: { \"@isbn\": '123', author: 'Herbert', title: 'Dune' } } }"
+
+[[test]]
+name = "rejects a document with no root element"
+fn = "to_json"
+args = ["''"]
+error = "no root element found"
+
+[[test]]
+name = "rejects mismatched start and end tags"
+fn = "to_json"
+args = ["'<a><b></a>'"]
+error = "ill-formed document"

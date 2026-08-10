@@ -1,0 +1,29 @@
+[[test]]
+name = "parses top-level keys and a nested table"
+fn = "to_json"
+args = ["'title = \"hello\"\\nport = 8080\\n[server]\\nhost = \"localhost\"\\n'"]
+expect = "{ port: 8080, server: { host: 'localhost' }, title: 'hello' }"
+
+[[test]]
+name = "collects an array of tables into an array"
+fn = "to_json"
+args = ["'[[package]]\\nname = \"serde\"\\nversion = \"1.0\"\\n'"]
+expect = "{ package: [{ name: 'serde', version: '1.0' }] }"
+
+[[test]]
+name = "rejects a malformed document"
+fn = "to_json"
+args = ["'this is not = = toml'"]
+error = "TOML parse error"
+
+[[test]]
+name = "serialises an object with a nested table"
+fn = "from_json"
+args = ["{ title: 'hello', server: { host: 'localhost', port: 8080 } }"]
+expect = "'title = \"hello\"\\n\\n[server]\\nhost = \"localhost\"\\nport = 8080\\n'"
+
+[[test]]
+name = "rejects a top-level value that is not an object"
+fn = "from_json"
+args = ["[1, 2, 3]"]
+error = true

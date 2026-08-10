@@ -1,0 +1,26 @@
+[[test]]
+name = "returns the published status with its rendered content"
+fn = "post_status"
+args = ["'https://mastodon.social'", "'mst_0123456789abcdef'", "'Hello, fediverse!'"]
+stdin = "{ id: '109363214785296301', created_at: '2026-08-10T09:14:00.000Z', url: 'https://mastodon.social/@alice/109363214785296301', content: '<p>Hello, fediverse!</p>', visibility: 'public', replies_count: 0, reblogs_count: 0, favourites_count: 0, account: { id: '110045', username: 'alice', acct: 'alice', display_name: 'Alice' } }"
+contains = "109363214785296301"
+
+[[test]]
+name = "posts to a self-hosted instance url"
+fn = "post_status"
+args = ["'https://fosstodon.org'", "'mst_0123456789abcdef'", "'Posting from SurrealDB.'"]
+stdin = "{ id: '111222333444555666', created_at: '2026-08-10T09:20:00.000Z', url: 'https://fosstodon.org/@bob/111222333444555666', content: '<p>Posting from SurrealDB.</p>', visibility: 'public', account: { acct: 'bob', display_name: 'Bob' } }"
+contains = "https://fosstodon.org/@bob/111222333444555666"
+
+[[test]]
+name = "returns an invalid-token error payload unchanged"
+fn = "post_status"
+args = ["'https://mastodon.social'", "'mst_expired'", "'Hello, fediverse!'"]
+stdin = "{ error: 'The access token is invalid' }"
+contains = "The access token is invalid"
+
+[[test]]
+name = "fails when the status request cannot be completed"
+fn = "post_status"
+args = ["'https://mastodon.social'", "'mst_0123456789abcdef'", "'Hello, fediverse!'"]
+error = "Call to host 'http::post' failed"

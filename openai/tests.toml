@@ -1,0 +1,52 @@
+[[test]]
+name = "returns the embedding vector from an embeddings response"
+fn = "embed"
+args = ["'sk-test'", "'text-embedding-3-small'", "'Hello, world!'"]
+stdin = "{ object: 'list', data: [ { object: 'embedding', index: 0, embedding: [0.0023064255, -0.009327292, 0.015797347] } ], model: 'text-embedding-3-small', usage: { prompt_tokens: 5, total_tokens: 5 } }"
+expect = "[0.0023064255f, -0.009327292f, 0.015797347f]"
+
+[[test]]
+name = "rejects an embeddings response carrying an error instead of data"
+fn = "embed"
+args = ["'sk-bad'", "'text-embedding-3-small'", "'Hello, world!'"]
+stdin = "{ error: { message: 'Incorrect API key provided.', type: 'invalid_request_error', code: 'invalid_api_key' } }"
+error = "Response contained no embedding values"
+
+[[test]]
+name = "rejects an embedding holding a non-numeric value"
+fn = "embed"
+args = ["'sk-test'", "'text-embedding-3-small'", "'Hello, world!'"]
+stdin = "{ object: 'list', data: [ { object: 'embedding', index: 0, embedding: [0.1, 'x', 0.3] } ], model: 'text-embedding-3-small' }"
+error = "Embedding contains a non-numeric value"
+
+[[test]]
+name = "returns the assistant message for a single prompt"
+fn = "generate"
+args = ["'sk-test'", "'gpt-4o-mini'", "'Say hello'"]
+stdin = "{ id: 'chatcmpl-abc123', object: 'chat.completion', created: 1727000000, model: 'gpt-4o-mini', choices: [ { index: 0, message: { role: 'assistant', content: 'Hello! How can I help you today?' }, finish_reason: 'stop' } ], usage: { prompt_tokens: 9, completion_tokens: 9, total_tokens: 18 } }"
+expect = "'Hello! How can I help you today?'"
+
+[[test]]
+name = "rejects a completion response with no choices"
+fn = "generate"
+args = ["'sk-bad'", "'gpt-4o-mini'", "'Say hello'"]
+stdin = "{ error: { message: 'Incorrect API key provided.', type: 'invalid_request_error', code: 'invalid_api_key' } }"
+error = "Response contained no message content"
+
+[[test]]
+name = "returns the assistant message for a multi-turn conversation"
+fn = "chat"
+args = [
+  "'sk-test'",
+  "'gpt-4o-mini'",
+  "[{ role: 'system', content: 'You are terse.' }, { role: 'user', content: 'What is the capital of France?' }]",
+]
+stdin = "{ id: 'chatcmpl-abc123', object: 'chat.completion', created: 1727000000, model: 'gpt-4o-mini', choices: [ { index: 0, message: { role: 'assistant', content: 'The capital of France is Paris.' }, finish_reason: 'stop' } ], usage: { prompt_tokens: 21, completion_tokens: 7, total_tokens: 28 } }"
+expect = "'The capital of France is Paris.'"
+
+[[test]]
+name = "rejects a chat response whose message content is missing"
+fn = "chat"
+args = ["'sk-test'", "'gpt-4o-mini'", "[{ role: 'user', content: 'Hi' }]"]
+stdin = "{ id: 'chatcmpl-abc123', object: 'chat.completion', created: 1727000000, model: 'gpt-4o-mini', choices: [ { index: 0, message: { role: 'assistant', refusal: 'I cannot help with that.' }, finish_reason: 'stop' } ] }"
+error = "Response contained no message content"

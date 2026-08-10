@@ -1,0 +1,17 @@
+[[test]]
+name = "compares an older version as lower"
+fn = "compare"
+args = ["'1.2.3'", "'1.2.4'"]
+expect = "-1"
+
+[[test]]
+name = "ignores build metadata per semver precedence"
+fn = "compare"
+args = ["'1.0.0+build.1'", "'1.0.0+build.2'"]
+expect = "0"
+
+[[test]]
+name = "rejects an unparseable version"
+fn = "parse"
+args = ["'not-a-version'"]
+error = true

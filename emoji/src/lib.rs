@@ -34,7 +34,9 @@ fn replace_shortcodes(text: String) -> String {
 		let found = after_start.find(':').and_then(|end| {
 			let candidate = &after_start[..end];
 			let valid = !candidate.is_empty()
-				&& candidate.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '+' || c == '-');
+				&& candidate
+					.chars()
+					.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '+' || c == '-');
 			valid.then(|| emojis::get_by_shortcode(candidate)).flatten().map(|e| (e.as_str(), end))
 		});
 		match found {

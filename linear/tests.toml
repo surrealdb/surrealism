@@ -1,0 +1,36 @@
+[[test]]
+name = "returns the created issue identifier and url"
+fn = "create_issue"
+args = [
+  "'lin_api_0123456789'",
+  "'a1b2c3d4-0000-4000-8000-000000000001'",
+  "'Investigate slow query planner'",
+  "'Reported by two customers on the EU cluster.'",
+]
+stdin = "{ data: { issueCreate: { success: true, issue: { id: 'f0e1d2c3-1111-4111-8111-111111111111', identifier: 'ENG-482', url: 'https://linear.app/acme/issue/ENG-482/investigate-slow-query-planner' } } } }"
+contains = "ENG-482"
+
+[[test]]
+name = "returns a graphql errors payload unchanged"
+fn = "create_issue"
+args = [
+  "'lin_api_invalid'",
+  "'a1b2c3d4-0000-4000-8000-000000000001'",
+  "'Title'",
+  "'Body'",
+]
+stdin = "{ data: NULL, errors: [{ message: 'Authentication required, not authenticated', path: ['issueCreate'], extensions: { type: 'authentication', code: 'AUTHENTICATION_ERROR' } }] }"
+contains = "AUTHENTICATION_ERROR"
+
+[[test]]
+name = "returns the fetched issue with its workflow state"
+fn = "get_issue"
+args = ["'lin_api_0123456789'", "'f0e1d2c3-1111-4111-8111-111111111111'"]
+stdin = "{ data: { issue: { id: 'f0e1d2c3-1111-4111-8111-111111111111', identifier: 'ENG-482', title: 'Investigate slow query planner', url: 'https://linear.app/acme/issue/ENG-482', state: { name: 'In Progress' } } } }"
+contains = "state: { name: 'In Progress' }"
+
+[[test]]
+name = "fails when the graphql request cannot be completed"
+fn = "get_issue"
+args = ["'lin_api_0123456789'", "'f0e1d2c3-1111-4111-8111-111111111111'"]
+error = "Call to host 'http::post' failed"

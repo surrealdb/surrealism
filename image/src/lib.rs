@@ -1,7 +1,7 @@
 //! Image manipulation functions for Surrealism.
 //!
-//! Register with e.g. `DEFINE MODULE image AS f"bucket:/image.surli";` and
-//! call `image::resize(data, 200, 200)`, `image::grayscale(data)`, etc.
+//! Register with e.g. `DEFINE MODULE mod::image AS f"bucket:/image.surli";` and
+//! call `mod::image::resize(data, 200, 200)`, `mod::image::grayscale(data)`, etc.
 //! Images are passed and returned as raw `bytes`.
 
 use std::io::Cursor;
@@ -32,8 +32,8 @@ fn parse_format(name: &str) -> Result<ImageFormat> {
 }
 
 fn positive_dim(v: i64) -> Result<u32> {
-	let v =
-		u32::try_from(v).map_err(|_| anyhow::anyhow!("dimension must be a positive integer, got {v}"))?;
+	let v = u32::try_from(v)
+		.map_err(|_| anyhow::anyhow!("dimension must be a positive integer, got {v}"))?;
 	if v == 0 {
 		anyhow::bail!("dimension must be greater than zero");
 	}
@@ -51,9 +51,18 @@ fn rgb_to_hsl(r: u8, g: u8, b: u8) -> (f64, f64, f64) {
 		return (0.0, 0.0, l);
 	}
 	let d = max - min;
-	let s = if l > 0.5 { d / (2.0 - max - min) } else { d / (max + min) };
+	let s = if l > 0.5 {
+		d / (2.0 - max - min)
+	} else {
+		d / (max + min)
+	};
 	let mut h = if max == r {
-		(g - b) / d + if g < b { 6.0 } else { 0.0 }
+		(g - b) / d
+			+ if g < b {
+				6.0
+			} else {
+				0.0
+			}
 	} else if max == g {
 		(b - r) / d + 2.0
 	} else {
@@ -68,7 +77,11 @@ fn hsl_to_rgb(h: f64, s: f64, l: f64) -> (u8, u8, u8) {
 		let v = (l * 255.0).round() as u8;
 		return (v, v, v);
 	}
-	let q = if l < 0.5 { l * (1.0 + s) } else { l + s - l * s };
+	let q = if l < 0.5 {
+		l * (1.0 + s)
+	} else {
+		l + s - l * s
+	};
 	let p = 2.0 * l - q;
 	let h = h.rem_euclid(360.0) / 360.0;
 	let hue_to_rgb = |t: f64| -> f64 {
@@ -113,8 +126,11 @@ fn adjust_saturation(img: &DynamicImage, amount: f64) -> DynamicImage {
 #[surrealism]
 fn resize(data: Bytes, width: i64, height: i64) -> Result<Bytes> {
 	let (img, format) = decode_with_format(&data)?;
-	let resized =
-		img.resize_exact(positive_dim(width)?, positive_dim(height)?, image::imageops::FilterType::Lanczos3);
+	let resized = img.resize_exact(
+		positive_dim(width)?,
+		positive_dim(height)?,
+		image::imageops::FilterType::Lanczos3,
+	);
 	encode(&resized, format)
 }
 

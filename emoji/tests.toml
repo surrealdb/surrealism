@@ -1,0 +1,47 @@
+[[test]]
+name = "resolves a colon-wrapped shortcode"
+fn = "to_unicode"
+args = ["':smile:'"]
+expect = "'😄'"
+
+[[test]]
+name = "resolves a bare shortcode without colons"
+fn = "to_unicode"
+args = ["'smile'"]
+expect = "'😄'"
+
+[[test]]
+name = "returns none for an unknown shortcode"
+fn = "to_unicode"
+args = ["':not_a_real_code:'"]
+expect = "NONE"
+
+[[test]]
+name = "returns the canonical shortcode for an emoji"
+fn = "to_shortcode"
+args = ["'🚀'"]
+expect = "'rocket'"
+
+[[test]]
+name = "returns none for text that is not an emoji"
+fn = "to_shortcode"
+args = ["'abc'"]
+expect = "NONE"
+
+[[test]]
+name = "replaces every known shortcode in a sentence"
+fn = "replace_shortcodes"
+args = ["'Hello :smile: and :rocket:!'"]
+expect = "'Hello 😄 and 🚀!'"
+
+[[test]]
+name = "leaves unknown shortcodes and stray colons untouched"
+fn = "replace_shortcodes"
+args = ["'ratio 10:30 and :not_real: stay'"]
+expect = "'ratio 10:30 and :not_real: stay'"
+
+[[test]]
+name = "returns text without shortcodes unchanged"
+fn = "replace_shortcodes"
+args = ["'no shortcodes here'"]
+expect = "'no shortcodes here'"

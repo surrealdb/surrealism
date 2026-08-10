@@ -6,7 +6,7 @@
 //! `mod::ed25519::sign($secret_key, $message)`,
 //! `mod::ed25519::verify($public_key, $message, $signature)`, etc.
 
-use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey, Verifier};
+use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use rand_core::OsRng;
 use surrealdb_types::Bytes;
 use surrealism::surrealism;

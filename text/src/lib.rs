@@ -1,7 +1,7 @@
 //! String and text manipulation functions for Surrealism.
 //!
-//! Register with e.g. `DEFINE MODULE text AS f"bucket:/text.surli";` and call
-//! `text::slugify("Hello, World!")`, `text::snake_case("myVarName")`, etc.
+//! Register with e.g. `DEFINE MODULE mod::text AS f"bucket:/text.surli";` and call
+//! `mod::text::slugify("Hello, World!")`, `mod::text::snake_case("myVarName")`, etc.
 
 use std::sync::LazyLock;
 

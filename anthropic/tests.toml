@@ -1,0 +1,49 @@
+[[test]]
+name = "returns the generated text for a single prompt"
+fn = "generate"
+args = ["'sk-ant-test'", "'claude-sonnet-4-5'", "'Say hello'", "256"]
+stdin = "{ id: 'msg_01XFDUDYJgAACzvnptvVoYEL', type: 'message', role: 'assistant', model: 'claude-sonnet-4-5', content: [ { type: 'text', text: 'Hello! How can I help you today?' } ], stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 11 } }"
+expect = "'Hello! How can I help you today?'"
+
+[[test]]
+name = "rejects a response carrying an error instead of content blocks"
+fn = "generate"
+args = ["'sk-ant-bad'", "'claude-sonnet-4-5'", "'Say hello'", "256"]
+stdin = "{ type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } }"
+error = "Anthropic response contains no text content block"
+
+[[test]]
+name = "returns the generated text for a multi-turn conversation"
+fn = "chat"
+args = [
+  "'sk-ant-test'",
+  "'claude-sonnet-4-5'",
+  "[{ role: 'user', content: 'What is the capital of France?' }, { role: 'assistant', content: 'Paris.' }, { role: 'user', content: 'Say that in a full sentence.' }]",
+  "512",
+]
+stdin = "{ id: 'msg_02', type: 'message', role: 'assistant', model: 'claude-sonnet-4-5', content: [ { type: 'text', text: 'The capital of France is Paris.' } ], stop_reason: 'end_turn', usage: { input_tokens: 28, output_tokens: 9 } }"
+expect = "'The capital of France is Paris.'"
+
+[[test]]
+name = "skips a leading thinking block and returns the text block"
+fn = "chat"
+args = [
+  "'sk-ant-test'",
+  "'claude-sonnet-4-5'",
+  "[{ role: 'user', content: 'What is the capital of France?' }]",
+  "512",
+]
+stdin = "{ id: 'msg_03', type: 'message', role: 'assistant', model: 'claude-sonnet-4-5', content: [ { type: 'thinking', thinking: 'The user wants a capital city.' }, { type: 'text', text: 'The capital of France is Paris.' } ], stop_reason: 'end_turn', usage: { input_tokens: 21, output_tokens: 9 } }"
+expect = "'The capital of France is Paris.'"
+
+[[test]]
+name = "rejects a tool-use-only response with no text block"
+fn = "chat"
+args = [
+  "'sk-ant-test'",
+  "'claude-sonnet-4-5'",
+  "[{ role: 'user', content: 'Weather in Paris?' }]",
+  "1024",
+]
+stdin = "{ id: 'msg_04', type: 'message', role: 'assistant', model: 'claude-sonnet-4-5', content: [ { type: 'tool_use', id: 'toolu_01', name: 'get_weather', input: { location: 'Paris' } } ], stop_reason: 'tool_use', usage: { input_tokens: 42, output_tokens: 30 } }"
+error = "Anthropic response contains no text content block"

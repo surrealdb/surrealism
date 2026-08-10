@@ -14,7 +14,9 @@ fn parse(input: String) -> Result<Vec<Vec<String>>, String> {
 	let mut reader = csv::ReaderBuilder::new().has_headers(false).from_reader(input.as_bytes());
 	reader
 		.records()
-		.map(|record| record.map(|r| r.iter().map(String::from).collect()).map_err(|e| e.to_string()))
+		.map(|record| {
+			record.map(|r| r.iter().map(String::from).collect()).map_err(|e| e.to_string())
+		})
 		.collect()
 }
 

@@ -1,0 +1,86 @@
+[[test]]
+name = "extracts visible text and drops script and style content"
+fn = "text"
+args = [
+  "'<html><head><title>Example Page</title><meta name=\"description\" content=\"A test page\"><meta property=\"og:title\" content=\"OG Title\"></head><body><h1>Hello</h1><p>World <a href=\"https://example.com\">link</a> and <a href=\"/about\">about</a></p><script>alert(1)</script><style>p{color:red}</style></body></html>'",
+]
+expect = "'Example Page Hello World link and about'"
+
+[[test]]
+name = "collapses runs of whitespace between text nodes"
+fn = "text"
+args = ["'<p>one</p>\\n\\n   <p>two</p>'"]
+expect = "'one two'"
+
+[[test]]
+name = "reads the document title"
+fn = "title"
+args = [
+  "'<html><head><title>Example Page</title><meta name=\"description\" content=\"A test page\"><meta property=\"og:title\" content=\"OG Title\"></head><body><h1>Hello</h1><p>World <a href=\"https://example.com\">link</a> and <a href=\"/about\">about</a></p><script>alert(1)</script><style>p{color:red}</style></body></html>'",
+]
+expect = "'Example Page'"
+
+[[test]]
+name = "returns none when the document has no title"
+fn = "title"
+args = ["'<p>no title here</p>'"]
+expect = "NONE"
+
+[[test]]
+name = "collects every anchor target in document order"
+fn = "links"
+args = [
+  "'<html><head><title>Example Page</title><meta name=\"description\" content=\"A test page\"><meta property=\"og:title\" content=\"OG Title\"></head><body><h1>Hello</h1><p>World <a href=\"https://example.com\">link</a> and <a href=\"/about\">about</a></p><script>alert(1)</script><style>p{color:red}</style></body></html>'",
+]
+expect = "['https://example.com', '/about']"
+
+[[test]]
+name = "returns an empty list when there are no links"
+fn = "links"
+args = ["'<p>no links</p>'"]
+expect = "[]"
+
+[[test]]
+name = "reads a named meta tag"
+fn = "meta"
+args = [
+  "'<html><head><title>Example Page</title><meta name=\"description\" content=\"A test page\"><meta property=\"og:title\" content=\"OG Title\"></head><body><h1>Hello</h1><p>World <a href=\"https://example.com\">link</a> and <a href=\"/about\">about</a></p><script>alert(1)</script><style>p{color:red}</style></body></html>'",
+  "'description'",
+]
+expect = "'A test page'"
+
+[[test]]
+name = "matches an Open Graph property regardless of case"
+fn = "meta"
+args = [
+  "'<html><head><title>Example Page</title><meta name=\"description\" content=\"A test page\"><meta property=\"og:title\" content=\"OG Title\"></head><body><h1>Hello</h1><p>World <a href=\"https://example.com\">link</a> and <a href=\"/about\">about</a></p><script>alert(1)</script><style>p{color:red}</style></body></html>'",
+  "'OG:TITLE'",
+]
+expect = "'OG Title'"
+
+[[test]]
+name = "returns none for a meta tag that is not present"
+fn = "meta"
+args = [
+  "'<html><head><title>Example Page</title><meta name=\"description\" content=\"A test page\"><meta property=\"og:title\" content=\"OG Title\"></head><body><h1>Hello</h1><p>World <a href=\"https://example.com\">link</a> and <a href=\"/about\">about</a></p><script>alert(1)</script><style>p{color:red}</style></body></html>'",
+  "'missing'",
+]
+expect = "NONE"
+
+[[test]]
+name = "strips script elements when sanitizing"
+fn = "sanitize"
+args = ["'<p>hi</p><script>alert(1)</script>'"]
+expect = "'<p>hi</p>'"
+
+[[test]]
+name = "strips javascript: URLs and event handlers"
+fn = "sanitize"
+args = ["'<a href=\"javascript:alert(1)\" onclick=\"x()\">click</a>'"]
+expect = "'<a rel=\"noopener noreferrer\">click</a>'"
+
+[[test]]
+name = "leaves safe formatting markup intact"
+fn = "sanitize"
+args = ["'<b>bold</b> <i>italic</i>'"]
+expect = "'<b>bold</b> <i>italic</i>'"

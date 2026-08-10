@@ -1,0 +1,45 @@
+[[test]]
+name = "returns the update summary after appending a row"
+fn = "append_row"
+args = [
+  "'ya29.a0AfB_test'",
+  "'1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'",
+  "'Sheet1!A1'",
+  "['2026-08-10', 'deploy', 'ok']",
+]
+stdin = "{ spreadsheetId: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms', tableRange: 'Sheet1!A1:D5', updates: { spreadsheetId: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms', updatedRange: 'Sheet1!A6:C6', updatedRows: 1, updatedColumns: 3, updatedCells: 3 } }"
+contains = "updatedRange: 'Sheet1!A6:C6'"
+
+[[test]]
+name = "fails when the append request cannot be delivered"
+fn = "append_row"
+args = [
+  "'ya29.a0AfB_test'",
+  "'1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'",
+  "'Sheet1!A1'",
+  "['2026-08-10', 'deploy', 'ok']",
+]
+stdin = ""
+error = "Call to host 'http::post' failed"
+
+[[test]]
+name = "returns the rows in the requested range"
+fn = "get_values"
+args = [
+  "'ya29.a0AfB_test'",
+  "'1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'",
+  "'Sheet1!A1:C2'",
+]
+stdin = "{ range: 'Sheet1!A1:C2', majorDimension: 'ROWS', values: [['Date', 'Event', 'Status'], ['2026-08-10', 'deploy', 'ok']] }"
+expect = "{ majorDimension: 'ROWS', range: 'Sheet1!A1:C2', values: [['Date', 'Event', 'Status'], ['2026-08-10', 'deploy', 'ok']] }"
+
+[[test]]
+name = "returns the Google API error payload for an unauthorised read"
+fn = "get_values"
+args = [
+  "'ya29.expired'",
+  "'1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'",
+  "'Sheet1!A1:C2'",
+]
+stdin = "{ error: { code: 403, message: 'Request had insufficient authentication scopes.', status: 'PERMISSION_DENIED' } }"
+contains = "PERMISSION_DENIED"

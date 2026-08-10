@@ -11,18 +11,21 @@ fn post_json_with_headers(
 	headers: serde_json::Value,
 	body: serde_json::Value,
 ) -> Result<String> {
-	let value: serde_json::Value = surrealism::run(
-		"http::post".to_string(),
-		None,
-		(url.to_string(), body, headers),
-	)
-	.context("Call to host 'http::post' failed")?;
+	let value: serde_json::Value =
+		surrealism::run("http::post".to_string(), None, (url.to_string(), body, headers))
+			.context("Call to host 'http::post' failed")?;
 	Ok(value.to_string())
 }
 
 /// Sends a transactional email via the Postmark API.
 #[surrealism]
-fn send(server_token: String, from: String, to: String, subject: String, body: String) -> Result<String> {
+fn send(
+	server_token: String,
+	from: String,
+	to: String,
+	subject: String,
+	body: String,
+) -> Result<String> {
 	let headers = serde_json::json!({ "X-Postmark-Server-Token": server_token });
 	let payload = serde_json::json!({
 		"From": from,

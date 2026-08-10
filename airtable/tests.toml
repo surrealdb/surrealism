@@ -1,0 +1,60 @@
+[[test]]
+name = "returns the created record id and stored fields"
+fn = "create_record"
+args = [
+  "'patAbc123.0123456789abcdef'",
+  "'appXY1234567890'",
+  "'Inventory'",
+  "{ Name: 'Widget', Quantity: 12, Notes: 'Restocked from the EU warehouse' }",
+]
+stdin = "{ id: 'recQ1W2E3R4T5Y6U', createdTime: '2026-08-10T09:14:00.000Z', fields: { Name: 'Widget', Quantity: 12, Notes: 'Restocked from the EU warehouse' } }"
+contains = "recQ1W2E3R4T5Y6U"
+
+[[test]]
+name = "accepts a table name containing spaces"
+fn = "create_record"
+args = [
+  "'patAbc123.0123456789abcdef'",
+  "'appXY1234567890'",
+  "'Project Tracker'",
+  "{ Name: 'Q3 rollout' }",
+]
+stdin = "{ id: 'recA1B2C3D4E5F6G', createdTime: '2026-08-10T09:15:00.000Z', fields: { Name: 'Q3 rollout' } }"
+contains = "recA1B2C3D4E5F6G"
+
+[[test]]
+name = "returns the listed records"
+fn = "list_records"
+args = ["'patAbc123.0123456789abcdef'", "'appXY1234567890'", "'Inventory'"]
+stdin = "{ records: [{ id: 'recQ1W2E3R4T5Y6U', createdTime: '2026-08-10T09:14:00.000Z', fields: { Name: 'Widget', Quantity: 12 } }, { id: 'recZ9X8C7V6B5N4M', createdTime: '2026-08-09T17:02:00.000Z', fields: { Name: 'Gadget', Quantity: 3 } }], offset: 'itrABC123/recZ9X8C7V6B5N4M' }"
+contains = "recZ9X8C7V6B5N4M"
+
+[[test]]
+name = "reports an unknown table as a TABLE_NOT_FOUND payload"
+fn = "list_records"
+args = ["'patAbc123.0123456789abcdef'", "'appXY1234567890'", "'Nope'"]
+stdin = "{ error: { type: 'TABLE_NOT_FOUND', message: 'Could not find table Nope in application appXY1234567890' } }"
+contains = "TABLE_NOT_FOUND"
+
+[[test]]
+name = "returns a single record by id"
+fn = "get_record"
+args = [
+  "'patAbc123.0123456789abcdef'",
+  "'appXY1234567890'",
+  "'Inventory'",
+  "'recQ1W2E3R4T5Y6U'",
+]
+stdin = "{ id: 'recQ1W2E3R4T5Y6U', createdTime: '2026-08-10T09:14:00.000Z', fields: { Name: 'Widget', Quantity: 12 } }"
+contains = "Name: 'Widget'"
+
+[[test]]
+name = "fails when the record request cannot be completed"
+fn = "get_record"
+args = [
+  "'patAbc123.0123456789abcdef'",
+  "'appXY1234567890'",
+  "'Inventory'",
+  "'recQ1W2E3R4T5Y6U'",
+]
+error = "Call to host 'http::get' failed"

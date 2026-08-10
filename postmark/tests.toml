@@ -1,0 +1,51 @@
+[[test]]
+name = "returns the message ID of a delivered email"
+fn = "send"
+args = [
+  "'11111111-2222-3333-4444-555555555555'",
+  "'alerts@example.com'",
+  "'ops@example.com'",
+  "'Nightly backup finished'",
+  "'All shards completed in 4m12s.'",
+]
+stdin = "{ To: 'ops@example.com', SubmittedAt: '2026-03-01T09:15:22.1234567Z', MessageID: 'b7bc2f4a-e38e-4336-af7d-e6c392c2f817', ErrorCode: 0, Message: 'OK' }"
+expect = "'{\"ErrorCode\":0,\"Message\":\"OK\",\"MessageID\":\"b7bc2f4a-e38e-4336-af7d-e6c392c2f817\",\"SubmittedAt\":\"2026-03-01T09:15:22.1234567Z\",\"To\":\"ops@example.com\"}'"
+
+[[test]]
+name = "returns the rejection for a malformed sender address"
+fn = "send"
+args = [
+  "'11111111-2222-3333-4444-555555555555'",
+  "'not-an-email'",
+  "'ops@example.com'",
+  "'Nightly backup finished'",
+  "'All shards completed in 4m12s.'",
+]
+stdin = "{ ErrorCode: 300, Message: 'Invalid \"From\" value.' }"
+expect = "'{\"ErrorCode\":300,\"Message\":\"Invalid \\\\\"From\\\\\" value.\"}'"
+
+[[test]]
+name = "returns the rejection for a missing server token"
+fn = "send"
+args = [
+  "'bad-token'",
+  "'alerts@example.com'",
+  "'ops@example.com'",
+  "'Nightly backup finished'",
+  "'All shards completed in 4m12s.'",
+]
+stdin = "{ ErrorCode: 10, Message: 'No Account or Server API tokens were supplied in the HTTP headers.' }"
+contains = "\"ErrorCode\":10"
+
+[[test]]
+name = "fails when the email request cannot be completed"
+fn = "send"
+args = [
+  "'11111111-2222-3333-4444-555555555555'",
+  "'alerts@example.com'",
+  "'ops@example.com'",
+  "'Nightly backup finished'",
+  "'All shards completed in 4m12s.'",
+]
+stdin = "@@@"
+error = "Call to host 'http::post' failed"

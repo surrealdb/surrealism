@@ -1,0 +1,35 @@
+[[test]]
+name = "accepts a five-field expression"
+fn = "is_valid"
+args = ["'0 0 * * *'"]
+expect = "true"
+
+[[test]]
+name = "rejects a malformed expression"
+fn = "is_valid"
+args = ["'not a cron'"]
+expect = "false"
+
+[[test]]
+name = "finds the next midnight after a mid-morning instant"
+fn = "next"
+args = ["'0 0 * * *'", "'2026-08-01T09:00:00Z'"]
+expect = "'2026-08-02T00:00:00+00:00'"
+
+[[test]]
+name = "normalises a non-UTC offset before matching"
+fn = "next"
+args = ["'*/15 * * * *'", "'2026-08-01T09:07:00+02:00'"]
+expect = "'2026-08-01T07:15:00+00:00'"
+
+[[test]]
+name = "fails on an expression with the wrong field count"
+fn = "next"
+args = ["'nonsense'", "'2026-08-01T09:00:00Z'"]
+error = "five or six fields"
+
+[[test]]
+name = "fails on a datetime that is not RFC3339"
+fn = "next"
+args = ["'0 0 * * *'", "'not-a-date'"]
+error = true

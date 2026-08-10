@@ -1,0 +1,34 @@
+[[test]]
+name = "generates a code for a valid base32 secret"
+fn = "generate"
+args = ["'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ'"]
+
+[[test]]
+name = "rejects a secret that is not valid base32"
+fn = "generate"
+args = ["'not-base32!'"]
+error = true
+
+[[test]]
+name = "rejects a secret shorter than 128 bits"
+fn = "generate"
+args = ["'JBSWY3DPEHPK3PXP'"]
+error = true
+
+[[test]]
+name = "rejects a code of the wrong length"
+fn = "verify"
+args = ["'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ'", "'12345'"]
+expect = "false"
+
+[[test]]
+name = "rejects a non-numeric code"
+fn = "verify"
+args = ["'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ'", "'abcdef'"]
+expect = "false"
+
+[[test]]
+name = "rejects verification against an invalid secret"
+fn = "verify"
+args = ["'not-base32!'", "'123456'"]
+error = true

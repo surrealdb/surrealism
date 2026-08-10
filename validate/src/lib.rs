@@ -1,7 +1,7 @@
 //! Format validation functions for Surrealism.
 //!
-//! Register with e.g. `DEFINE MODULE validate AS f"bucket:/validate.surli";`
-//! and call `validate::email("a@b.com")`, `validate::iban("GB...")`, etc.
+//! Register with e.g. `DEFINE MODULE mod::validate AS f"bucket:/validate.surli";`
+//! and call `mod::validate::email("a@b.com")`, `mod::validate::iban("GB...")`, etc.
 //!
 //! These are lightweight, dependency-light format checks (not full RFC
 //! parsers) intended for everyday input validation.
@@ -70,13 +70,17 @@ fn luhn_valid(input: &str) -> bool {
 			let d = c.to_digit(10).expect("already validated as ascii digit");
 			if i % 2 == 1 {
 				let doubled = d * 2;
-				if doubled > 9 { doubled - 9 } else { doubled }
+				if doubled > 9 {
+					doubled - 9
+				} else {
+					doubled
+				}
 			} else {
 				d
 			}
 		})
 		.sum();
-	sum % 10 == 0
+	sum.is_multiple_of(10)
 }
 
 /// Checks whether `input` is a Luhn-valid credit card number.
@@ -88,7 +92,9 @@ fn credit_card(input: String) -> bool {
 fn iban_valid(input: &str) -> bool {
 	let cleaned: String =
 		input.chars().filter(|c| !c.is_whitespace()).map(|c| c.to_ascii_uppercase()).collect();
-	if cleaned.len() < 15 || cleaned.len() > 34 || !cleaned.chars().all(|c| c.is_ascii_alphanumeric())
+	if cleaned.len() < 15
+		|| cleaned.len() > 34
+		|| !cleaned.chars().all(|c| c.is_ascii_alphanumeric())
 	{
 		return false;
 	}

@@ -19,7 +19,12 @@ fn post_json(url: &str, body: Value) -> Result<Value> {
 /// Triggers a new PagerDuty incident. `severity` must be one of "critical",
 /// "error", "warning", or "info".
 #[surrealism]
-fn trigger(routing_key: String, summary: String, source: String, severity: String) -> Result<Value, String> {
+fn trigger(
+	routing_key: String,
+	summary: String,
+	source: String,
+	severity: String,
+) -> Result<Value, String> {
 	post_json(
 		ENQUEUE_URL,
 		serde_json::json!({

@@ -10,7 +10,13 @@ use surrealism::surrealism;
 
 /// Sends an SMS via the Twilio Messages API using Account SID/Auth Token Basic Auth.
 #[surrealism]
-fn send(account_sid: String, auth_token: String, from: String, to: String, body: String) -> Result<Value, String> {
+fn send(
+	account_sid: String,
+	auth_token: String,
+	from: String,
+	to: String,
+	body: String,
+) -> Result<Value, String> {
 	let url = format!("https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json");
 
 	let form_body = form_urlencoded::Serializer::new(String::new())
@@ -25,5 +31,6 @@ fn send(account_sid: String, auth_token: String, from: String, to: String, body:
 		"Content-Type": "application/x-www-form-urlencoded",
 	});
 
-	surrealism::run("http::post".to_string(), None, (url, form_body, headers)).map_err(|e| e.to_string())
+	surrealism::run("http::post".to_string(), None, (url, form_body, headers))
+		.map_err(|e| e.to_string())
 }

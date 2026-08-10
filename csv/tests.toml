@@ -1,0 +1,53 @@
+[[test]]
+name = "parses every row including the first as data"
+fn = "parse"
+args = ["'name,age\\nada,36\\ngrace,45'"]
+expect = "[['name', 'age'], ['ada', '36'], ['grace', '45']]"
+
+[[test]]
+name = "keeps a comma inside a quoted field"
+fn = "parse"
+args = ["'a,\"b,c\",d\\n1,2,3'"]
+expect = "[['a', 'b,c', 'd'], ['1', '2', '3']]"
+
+[[test]]
+name = "returns no rows for empty input"
+fn = "parse"
+args = ["''"]
+expect = "[]"
+
+[[test]]
+name = "maps each data row onto the header names"
+fn = "parse_objects"
+args = ["'name,age\\nada,36\\ngrace,45'"]
+expect = "[{ age: '36', name: 'ada' }, { age: '45', name: 'grace' }]"
+
+[[test]]
+name = "returns no objects when only a header row is present"
+fn = "parse_objects"
+args = ["'name,age'"]
+expect = "[]"
+
+[[test]]
+name = "fails when a row has more fields than the header"
+fn = "parse_objects"
+args = ["'name,age\\nada,36,extra'"]
+error = "found record with 3 fields"
+
+[[test]]
+name = "writes rows as comma-delimited lines"
+fn = "stringify"
+args = ["[['name','age'],['ada','36']]"]
+expect = "'name,age\\nada,36\\n'"
+
+[[test]]
+name = "quotes fields containing commas and doubles embedded quotes"
+fn = "stringify"
+args = ["[['a,b','c\"d']]"]
+expect = "'\"a,b\",\"c\"\"d\"\\n'"
+
+[[test]]
+name = "writes nothing for no rows"
+fn = "stringify"
+args = ["[]"]
+expect = "''"

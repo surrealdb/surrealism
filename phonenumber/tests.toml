@@ -1,0 +1,53 @@
+[[test]]
+name = "accepts a valid national number for its region"
+fn = "is_valid"
+args = ["'6502530000'", "'US'"]
+expect = "true"
+
+[[test]]
+name = "reports an unparseable number as invalid"
+fn = "is_valid"
+args = ["'not a number'", "'US'"]
+expect = "false"
+
+[[test]]
+name = "reports a too-short number as invalid"
+fn = "is_valid"
+args = ["'12345'", "'US'"]
+expect = "false"
+
+[[test]]
+name = "formats a punctuated national number as E.164"
+fn = "format_e164"
+args = ["'(650) 253-0000'", "'US'"]
+expect = "'+16502530000'"
+
+[[test]]
+name = "keeps the country of an already-international number"
+fn = "format_e164"
+args = ["'+44 20 7946 0958'", "'GB'"]
+expect = "'+442079460958'"
+
+[[test]]
+name = "rejects an unknown region code"
+fn = "format_e164"
+args = ["'6502530000'", "'ZZ'"]
+error = true
+
+[[test]]
+name = "returns validity, E.164 form, calling code and national number"
+fn = "parse"
+args = ["'6502530000'", "'US'"]
+expect = "{ country_code: 1, e164: '+16502530000', national_number: '6502530000', valid: true }"
+
+[[test]]
+name = "parses an international number without a default region"
+fn = "parse"
+args = ["'+442079460958'", "'GB'"]
+expect = "{ country_code: 44, e164: '+442079460958', national_number: '2079460958', valid: true }"
+
+[[test]]
+name = "rejects a number that cannot be parsed"
+fn = "parse"
+args = ["'not a number'", "'US'"]
+error = true

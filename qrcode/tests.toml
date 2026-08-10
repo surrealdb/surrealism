@@ -1,0 +1,23 @@
+[[test]]
+name = "renders a QR code as PNG bytes"
+fn = "generate"
+args = ["'https://surrealdb.com'"]
+contains = "b\"89504E470D0A1A0A"
+
+[[test]]
+name = "encodes an empty payload"
+fn = "generate"
+args = ["''"]
+contains = "b\"89504E470D0A1A0A"
+
+[[test]]
+name = "renders a QR code as an SVG document"
+fn = "generate_svg"
+args = ["'https://surrealdb.com'"]
+contains = "<svg"
+
+[[test]]
+name = "honours the minimum SVG dimensions"
+fn = "generate_svg"
+args = ["'hello'"]
+contains = "#000000"

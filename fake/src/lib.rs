@@ -1,12 +1,10 @@
 //! Realistic fake data generation functions for Surrealism.
 //!
-//! Register with e.g. `DEFINE MODULE fake AS f"bucket:/fake.surli";` and call
-//! `fake::name()`, `fake::address()`, `fake::email()`, etc.
+//! Register with e.g. `DEFINE MODULE mod::fake AS f"bucket:/fake.surli";` and call
+//! `mod::fake::name()`, `mod::fake::address()`, `mod::fake::email()`, etc.
 
 use fake::Fake;
-use fake::faker::address::en::{
-	CityName, CountryName, Latitude, Longitude, StateName, StreetName, ZipCode,
-};
+use fake::faker::address::en::{CityName, CountryName, Latitude, StateName, StreetName, ZipCode};
 use fake::faker::company::en::{CompanyName, Industry, Profession};
 use fake::faker::internet::en::{FreeEmail, IPv4, IPv6, Password, UserAgent, Username};
 use fake::faker::lorem::en::{Paragraph, Sentence, Word};
@@ -48,9 +46,8 @@ fn username() -> String {
 /// A random password of exactly `length` characters.
 #[surrealism]
 fn password(length: i64) -> Result<String, String> {
-	let length = usize::try_from(length)
-		.map_err(|_| "length must not be negative".to_string())?
-		.max(1);
+	let length =
+		usize::try_from(length).map_err(|_| "length must not be negative".to_string())?.max(1);
 	Ok(Password(length..length + 1).fake())
 }
 
@@ -117,7 +114,7 @@ fn latitude() -> f64 {
 /// A random longitude, in `[-180, 180]`.
 #[surrealism]
 fn longitude() -> f64 {
-	Longitude().fake()
+	rand::rng().random_range(-180.0..180.0)
 }
 
 /// A single random word.
@@ -208,7 +205,11 @@ fn luhn_check_digit(digits: &[u32]) -> u32 {
 		.map(|(i, &d)| {
 			if i % 2 == 0 {
 				let doubled = d * 2;
-				if doubled > 9 { doubled - 9 } else { doubled }
+				if doubled > 9 {
+					doubled - 9
+				} else {
+					doubled
+				}
 			} else {
 				d
 			}

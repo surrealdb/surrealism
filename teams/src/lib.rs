@@ -34,7 +34,12 @@ fn send(webhook_url: String, text: String) -> Result<String> {
 
 /// Posts a plain-text message to a Teams channel via the Microsoft Graph API.
 #[surrealism]
-fn post_channel_message(token: String, team_id: String, channel_id: String, text: String) -> Result<Value, String> {
+fn post_channel_message(
+	token: String,
+	team_id: String,
+	channel_id: String,
+	text: String,
+) -> Result<Value, String> {
 	post_json_with_headers(
 		&format!("https://graph.microsoft.com/v1.0/teams/{team_id}/channels/{channel_id}/messages"),
 		json!({ "body": { "content": text } }),

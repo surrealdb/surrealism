@@ -1,0 +1,53 @@
+[[test]]
+name = "emits a VEVENT with the requested start and end"
+fn = "event"
+args = ["'Standup'", "'2026-08-01T09:00:00Z'", "'2026-08-01T09:15:00Z'"]
+contains = "DTSTART:20260801T090000Z"
+
+[[test]]
+name = "carries the summary into the calendar text"
+fn = "event"
+args = ["'Standup'", "'2026-08-01T09:00:00Z'", "'2026-08-01T09:15:00Z'"]
+contains = "SUMMARY:Standup"
+
+[[test]]
+name = "rejects a start that is not an RFC3339 datetime"
+fn = "event"
+args = ["'Standup'", "'not-a-date'", "'2026-08-01T09:15:00Z'"]
+error = "premature end of input"
+
+[[test]]
+name = "includes the location in a detailed event"
+fn = "event_with_details"
+args = [
+  "'Standup'",
+  "'2026-08-01T09:00:00Z'",
+  "'2026-08-01T09:15:00Z'",
+  "'Daily sync'",
+  "'Room 1'",
+]
+contains = "LOCATION:Room 1"
+
+[[test]]
+name = "includes the description in a detailed event"
+fn = "event_with_details"
+args = [
+  "'Standup'",
+  "'2026-08-01T09:00:00Z'",
+  "'2026-08-01T09:15:00Z'",
+  "'Daily sync'",
+  "'Room 1'",
+]
+contains = "DESCRIPTION:Daily sync"
+
+[[test]]
+name = "rejects an end that is not an RFC3339 datetime"
+fn = "event_with_details"
+args = [
+  "'Standup'",
+  "'2026-08-01T09:00:00Z'",
+  "'2026-08-01 09:15'",
+  "'Daily sync'",
+  "'Room 1'",
+]
+error = true

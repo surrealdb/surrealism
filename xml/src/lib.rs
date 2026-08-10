@@ -25,7 +25,12 @@ fn read_start(start: &BytesStart) -> Result<(String, Vec<(String, String)>), Str
 
 /// Adds a child element's value under its tag name, collecting repeated
 /// sibling tags into an array in encounter order.
-fn push_child(order: &mut Vec<String>, children: &mut HashMap<String, Vec<Value>>, name: String, value: Value) {
+fn push_child(
+	order: &mut Vec<String>,
+	children: &mut HashMap<String, Vec<Value>>,
+	name: String,
+	value: Value,
+) {
 	if !children.contains_key(&name) {
 		order.push(name.clone());
 	}
@@ -55,7 +60,11 @@ fn element_value(
 	}
 	for name in order {
 		let mut values = children.remove(&name).unwrap_or_default();
-		let value = if values.len() == 1 { values.remove(0) } else { Value::Array(values) };
+		let value = if values.len() == 1 {
+			values.remove(0)
+		} else {
+			Value::Array(values)
+		};
 		object.insert(name, value);
 	}
 	Value::Object(object)
@@ -63,7 +72,11 @@ fn element_value(
 
 /// Parses an element's body (everything after its start tag up to and
 /// including its matching end tag) into a JSON value.
-fn parse_body(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>, attrs: Vec<(String, String)>) -> Result<Value, String> {
+fn parse_body(
+	reader: &mut Reader<&[u8]>,
+	buf: &mut Vec<u8>,
+	attrs: Vec<(String, String)>,
+) -> Result<Value, String> {
 	let mut text_parts: Vec<String> = Vec::new();
 	let mut order: Vec<String> = Vec::new();
 	let mut children: HashMap<String, Vec<Value>> = HashMap::new();
@@ -101,7 +114,11 @@ fn parse_body(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>, attrs: Vec<(String,
 		}
 	}
 
-	let text = if text_parts.is_empty() { None } else { Some(text_parts.join("")) };
+	let text = if text_parts.is_empty() {
+		None
+	} else {
+		Some(text_parts.join(""))
+	};
 	Ok(element_value(attrs, text, order, children))
 }
 

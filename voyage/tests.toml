@@ -1,0 +1,41 @@
+[[test]]
+name = "returns the embedding vector from an embeddings response"
+fn = "embed"
+args = ["'pa-test'", "'voyage-3'", "'Hello, world!'"]
+stdin = "{ object: 'list', data: [ { object: 'embedding', embedding: [0.021, -0.0135, 0.087], index: 0 } ], model: 'voyage-3', usage: { total_tokens: 4 } }"
+expect = "[0.021f, -0.0135f, 0.087f]"
+
+[[test]]
+name = "rejects a response carrying an error instead of embedding data"
+fn = "embed"
+args = ["'pa-bad'", "'voyage-3'", "'Hello, world!'"]
+stdin = "{ detail: 'Provided API key is invalid.' }"
+error = "Response contains no 'data[0].embedding' array"
+
+[[test]]
+name = "returns the embedding vector for a query-side embedding"
+fn = "embed_for_query"
+args = ["'pa-test'", "'voyage-3'", "'Who wrote Frankenstein?'"]
+stdin = "{ object: 'list', data: [ { object: 'embedding', embedding: [0.014, -0.062, 0.0031], index: 0 } ], model: 'voyage-3', usage: { total_tokens: 6 } }"
+expect = "[0.014f, -0.062f, 0.0031f]"
+
+[[test]]
+name = "rejects a query embedding holding a non-numeric value"
+fn = "embed_for_query"
+args = ["'pa-test'", "'voyage-3'", "'Who wrote Frankenstein?'"]
+stdin = "{ object: 'list', data: [ { object: 'embedding', embedding: [0.021, 'x'], index: 0 } ], model: 'voyage-3' }"
+error = "Embedding contains a non-numeric value"
+
+[[test]]
+name = "returns the embedding vector for a document-side embedding"
+fn = "embed_for_document"
+args = ["'pa-test'", "'voyage-3'", "'Frankenstein was written by Mary Shelley.'"]
+stdin = "{ object: 'list', data: [ { object: 'embedding', embedding: [-0.0072, 0.0455, 0.0119], index: 0 } ], model: 'voyage-3', usage: { total_tokens: 9 } }"
+expect = "[-0.0072f, 0.0455f, 0.0119f]"
+
+[[test]]
+name = "rejects a document embedding response with an empty data list"
+fn = "embed_for_document"
+args = ["'pa-test'", "'voyage-3'", "'Frankenstein was written by Mary Shelley.'"]
+stdin = "{ object: 'list', data: [], model: 'voyage-3', usage: { total_tokens: 0 } }"
+error = "Response contains no 'data[0].embedding' array"

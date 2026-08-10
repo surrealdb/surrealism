@@ -1,0 +1,23 @@
+[[test]]
+name = "compresses bytes into a gzip stream"
+fn = "gzip"
+args = ['b"68656c6c6f2c20776f726c6421"']
+expect = 'b"1F8B08000000000000FFCB48CDC9C9D75128CF2FCA49510400138D98580D000000"'
+
+[[test]]
+name = "compresses empty input into an empty gzip stream"
+fn = "gzip"
+args = ['b""']
+expect = 'b"1F8B08000000000000FF03000000000000000000"'
+
+[[test]]
+name = "restores the original bytes from a gzip stream"
+fn = "gunzip"
+args = ['b"1F8B08000000000000FFCB48CDC9C9D75128CF2FCA49510400138D98580D000000"']
+expect = 'b"68656C6C6F2C20776F726C6421"'
+
+[[test]]
+name = "rejects input that is not a gzip stream"
+fn = "gunzip"
+args = ['b"00010203"']
+error = true

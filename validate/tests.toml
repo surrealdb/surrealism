@@ -1,0 +1,137 @@
+[[test]]
+name = "accepts an address with plus tagging and a multi-label domain"
+fn = "email"
+args = ["'user.name+tag@example.co.uk'"]
+expect = "true"
+
+[[test]]
+name = "rejects a string with no @ or domain"
+fn = "email"
+args = ["'not an email'"]
+expect = "false"
+
+[[test]]
+name = "rejects a bare hostname with no dot"
+fn = "email"
+args = ["'user@localhost'"]
+expect = "false"
+
+[[test]]
+name = "accepts an https URL with a path"
+fn = "url"
+args = ["'https://surrealdb.com/docs'"]
+expect = "true"
+
+[[test]]
+name = "rejects a well-formed URL on a non-http scheme"
+fn = "url"
+args = ["'ftp://example.com/file'"]
+expect = "false"
+
+[[test]]
+name = "rejects a string that is not a URL at all"
+fn = "url"
+args = ["'just a string'"]
+expect = "false"
+
+[[test]]
+name = "accepts a dotted-quad address"
+fn = "ipv4"
+args = ["'192.168.1.1'"]
+expect = "true"
+
+[[test]]
+name = "rejects an octet above 255"
+fn = "ipv4"
+args = ["'256.1.1.1'"]
+expect = "false"
+
+[[test]]
+name = "accepts a compressed IPv6 address"
+fn = "ipv6"
+args = ["'2001:db8::8a2e:370:7334'"]
+expect = "true"
+
+[[test]]
+name = "rejects an IPv4 address as IPv6"
+fn = "ipv6"
+args = ["'192.168.1.1'"]
+expect = "false"
+
+[[test]]
+name = "accepts a Luhn-valid number written with spaces"
+fn = "credit_card"
+args = ["'4242 4242 4242 4242'"]
+expect = "true"
+
+[[test]]
+name = "rejects a number whose check digit is wrong"
+fn = "credit_card"
+args = ["'4242424242424241'"]
+expect = "false"
+
+[[test]]
+name = "rejects a number shorter than eight digits"
+fn = "credit_card"
+args = ["'1234'"]
+expect = "false"
+
+[[test]]
+name = "accepts a grouped IBAN that passes the mod-97 check"
+fn = "iban"
+args = ["'GB82 WEST 1234 5698 7654 32'"]
+expect = "true"
+
+[[test]]
+name = "rejects an IBAN whose check digits do not match"
+fn = "iban"
+args = ["'GB82WEST12345698765433'"]
+expect = "false"
+
+[[test]]
+name = "accepts a hyphenated UUID"
+fn = "uuid"
+args = ["'0195b1ba-0a4f-7c3e-9f2d-1b3c4d5e6f70'"]
+expect = "true"
+
+[[test]]
+name = "rejects a UUID with the hyphens stripped"
+fn = "uuid"
+args = ["'0195b1ba0a4f7c3e9f2d1b3c4d5e6f70'"]
+expect = "false"
+
+[[test]]
+name = "accepts an E.164 number with a country code"
+fn = "phone"
+args = ["'+447700900123'"]
+expect = "true"
+
+[[test]]
+name = "rejects a number starting with zero after the plus"
+fn = "phone"
+args = ["'+0447700900123'"]
+expect = "false"
+
+[[test]]
+name = "ignores surrounding whitespace on a phone number"
+fn = "phone"
+args = ["'  +447700900123  '"]
+expect = "true"
+
+[[test]]
+name = "accepts a six-digit hex color with a leading hash"
+fn = "hex_color"
+args = ["'#1a2b3c'"]
+expect = "true"
+
+[[test]]
+name = "accepts a three-digit hex color without a hash"
+fn = "hex_color"
+args = ["'fff'"]
+expect = "true"
+
+[[test]]
+name = "rejects a hex color of an unsupported length"
+fn = "hex_color"
+args = ["'#12345'"]
+expect = "false"

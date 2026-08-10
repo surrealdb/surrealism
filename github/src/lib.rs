@@ -30,7 +30,13 @@ fn get_json_with_headers(url: &str, headers: Value) -> Result<Value> {
 
 /// Creates an issue in a repository.
 #[surrealism]
-fn create_issue(token: String, owner: String, repo: String, title: String, body: String) -> Result<Value, String> {
+fn create_issue(
+	token: String,
+	owner: String,
+	repo: String,
+	title: String,
+	body: String,
+) -> Result<Value, String> {
 	post_json_with_headers(
 		&format!("https://api.github.com/repos/{owner}/{repo}/issues"),
 		json!({ "title": title, "body": body }),
@@ -58,7 +64,12 @@ fn create_comment(
 
 /// Fetches an issue from a repository.
 #[surrealism]
-fn get_issue(token: String, owner: String, repo: String, issue_number: i64) -> Result<Value, String> {
+fn get_issue(
+	token: String,
+	owner: String,
+	repo: String,
+	issue_number: i64,
+) -> Result<Value, String> {
 	get_json_with_headers(
 		&format!("https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"),
 		auth_headers(&token),

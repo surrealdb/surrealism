@@ -1,0 +1,51 @@
+[[test]]
+name = "returns the queued message resource"
+fn = "send"
+args = [
+  "'AC-example-account-sid'",
+  "'test-auth-token'",
+  "'+15017122661'",
+  "'+15558675310'",
+  "'Hi there'",
+]
+stdin = "{ sid: 'SM1234567890abcdef1234567890abcdef', status: 'queued', to: '+15558675310', from: '+15017122661', body: 'Hi there', num_segments: '1', error_code: NULL }"
+expect = "{ body: 'Hi there', error_code: NULL, from: '+15017122661', num_segments: '1', sid: 'SM1234567890abcdef1234567890abcdef', status: 'queued', to: '+15558675310' }"
+
+[[test]]
+name = "returns the API failure for an unverified recipient"
+fn = "send"
+args = [
+  "'AC-example-account-sid'",
+  "'test-auth-token'",
+  "'+15017122661'",
+  "'+15005550001'",
+  "'Hi there'",
+]
+stdin = "{ code: 21608, message: 'The number +15005550001 is unverified. Trial accounts may only send messages to verified numbers.', more_info: 'https://www.twilio.com/docs/errors/21608', status: 400 }"
+contains = "21608"
+
+[[test]]
+name = "sends a message body containing characters that need encoding"
+fn = "send"
+args = [
+  "'AC-example-account-sid'",
+  "'test-auth-token'",
+  "'+15017122661'",
+  "'+15558675310'",
+  "'50% off & free shipping'",
+]
+stdin = "{ sid: 'SMabcdef1234567890abcdef1234567890', status: 'accepted', to: '+15558675310', from: '+15017122661', body: '50% off & free shipping' }"
+contains = "'accepted'"
+
+[[test]]
+name = "fails when the messages request cannot be completed"
+fn = "send"
+args = [
+  "'AC-example-account-sid'",
+  "'test-auth-token'",
+  "'+15017122661'",
+  "'+15558675310'",
+  "'Hi there'",
+]
+stdin = "@@@"
+error = true

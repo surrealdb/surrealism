@@ -223,32 +223,30 @@ fn parse_produce_response(data: &[u8]) -> Result<i64, String> {
 	};
 	let _correlation_id = r.i32()?;
 	let topic_count = r.i32()?;
-	for _ in 0..topic_count {
-		let _topic_name = r.nullable_string()?;
-		let partition_count = r.i32()?;
-		for _ in 0..partition_count {
-			let _index = r.i32()?;
-			let error_code = r.i16()?;
-			let base_offset = r.i64()?;
-			let _log_append_time = r.i64()?;
-			let _log_start_offset = r.i64()?;
-			if error_code != 0 {
-				return Err(format!(
-					"Kafka broker rejected the produce request (error code {error_code}); see \
-					 https://kafka.apache.org/protocol.html#protocol_error_codes"
-				));
-			}
-			return Ok(base_offset);
-		}
+	if topic_count < 1 {
+		return Err("Empty produce response".to_string());
 	}
-	Err("Empty produce response".to_string())
+	let _topic_name = r.nullable_string()?;
+	let partition_count = r.i32()?;
+	if partition_count < 1 {
+		return Err("Empty produce response".to_string());
+	}
+	let _index = r.i32()?;
+	let error_code = r.i16()?;
+	let base_offset = r.i64()?;
+	let _log_append_time = r.i64()?;
+	let _log_start_offset = r.i64()?;
+	if error_code != 0 {
+		return Err(format!(
+			"Kafka broker rejected the produce request (error code {error_code}); see \
+			 https://kafka.apache.org/protocol.html#protocol_error_codes"
+		));
+	}
+	Ok(base_offset)
 }
 
 fn current_timestamp_millis() -> i64 {
-	SystemTime::now()
-		.duration_since(UNIX_EPOCH)
-		.map(|d| d.as_millis() as i64)
-		.unwrap_or(0)
+	SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
 }
 
 /// Converts a SurrealQL value into Kafka record-value bytes: strings and
@@ -275,9 +273,11 @@ fn produce_impl(
 			 (see the module README), so the broker must be given as e.g. '10.0.0.5:9092'."
 		)
 	})?;
-	let mut stream = TcpStream::connect(addr).map_err(|e| format!("Failed to connect to {broker}: {e}"))?;
+	let mut stream =
+		TcpStream::connect(addr).map_err(|e| format!("Failed to connect to {broker}: {e}"))?;
 
-	let record_batch = encode_record_batch(key.map(str::as_bytes), value, current_timestamp_millis());
+	let record_batch =
+		encode_record_batch(key.map(str::as_bytes), value, current_timestamp_millis());
 	// acks=1 (leader only), 5s broker-side timeout, always partition 0.
 	let request = encode_produce_request(1, 1, 5000, topic, 0, &record_batch);
 
@@ -286,7 +286,8 @@ fn produce_impl(
 	let mut size_buf = [0u8; 4];
 	stream.read_exact(&mut size_buf).map_err(|e| format!("Failed to read response size: {e}"))?;
 	let size = i32::from_be_bytes(size_buf);
-	let size = usize::try_from(size).map_err(|_| "Broker sent a negative response size".to_string())?;
+	let size =
+		usize::try_from(size).map_err(|_| "Broker sent a negative response size".to_string())?;
 	let mut response = vec![0u8; size];
 	stream.read_exact(&mut response).map_err(|e| format!("Failed to read response body: {e}"))?;
 
@@ -298,7 +299,11 @@ fn produce_impl(
 /// offset the broker assigned to the record.
 #[surrealism]
 fn produce(broker: String, topic: String, key: String, value: Value) -> Result<i64, String> {
-	let key = if key.is_empty() { None } else { Some(key.as_str()) };
+	let key = if key.is_empty() {
+		None
+	} else {
+		Some(key.as_str())
+	};
 	let value = value_to_kafka_bytes(value);
 	produce_impl(&broker, &topic, key, value.as_deref())
 }

@@ -28,7 +28,11 @@ fn get_json_with_headers(url: &str, headers: Value) -> Result<Value> {
 
 /// Creates a page in a database. `properties` must match the target database's property schema.
 #[surrealism]
-fn create_page(token: String, parent_database_id: String, properties: Value) -> Result<Value, String> {
+fn create_page(
+	token: String,
+	parent_database_id: String,
+	properties: Value,
+) -> Result<Value, String> {
 	post_json_with_headers(
 		"https://api.notion.com/v1/pages",
 		json!({ "parent": { "database_id": parent_database_id }, "properties": properties }),
@@ -40,8 +44,11 @@ fn create_page(token: String, parent_database_id: String, properties: Value) -> 
 /// Fetches a page by id.
 #[surrealism]
 fn get_page(token: String, page_id: String) -> Result<Value, String> {
-	get_json_with_headers(&format!("https://api.notion.com/v1/pages/{page_id}"), auth_headers(&token))
-		.map_err(|e| e.to_string())
+	get_json_with_headers(
+		&format!("https://api.notion.com/v1/pages/{page_id}"),
+		auth_headers(&token),
+	)
+	.map_err(|e| e.to_string())
 }
 
 /// Queries all rows in a database, unfiltered.

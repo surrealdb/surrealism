@@ -1,0 +1,51 @@
+[[test]]
+name = "returns the empty body of an accepted send"
+fn = "send"
+args = [
+  "'SG.testkey'",
+  "'alerts@example.com'",
+  "'ops@example.com'",
+  "'Nightly backup finished'",
+  "'All shards completed in 4m12s.'",
+]
+stdin = "{}"
+expect = "'{}'"
+
+[[test]]
+name = "returns the rejection for an unverified sender identity"
+fn = "send"
+args = [
+  "'SG.testkey'",
+  "'nobody@example.com'",
+  "'ops@example.com'",
+  "'Nightly backup finished'",
+  "'All shards completed in 4m12s.'",
+]
+stdin = "{ errors: [{ message: 'The from address does not match a verified Sender Identity.', field: 'from', help: NULL }] }"
+expect = "'{\"errors\":[{\"field\":\"from\",\"help\":null,\"message\":\"The from address does not match a verified Sender Identity.\"}]}'"
+
+[[test]]
+name = "returns the rejection for an invalid API key"
+fn = "send"
+args = [
+  "'SG.badkey'",
+  "'alerts@example.com'",
+  "'ops@example.com'",
+  "'Nightly backup finished'",
+  "'All shards completed in 4m12s.'",
+]
+stdin = "{ errors: [{ message: 'The provided authorization grant is invalid, expired, or revoked', field: NULL, help: NULL }] }"
+contains = "invalid, expired, or revoked"
+
+[[test]]
+name = "fails when the mail send request cannot be completed"
+fn = "send"
+args = [
+  "'SG.testkey'",
+  "'alerts@example.com'",
+  "'ops@example.com'",
+  "'Nightly backup finished'",
+  "'All shards completed in 4m12s.'",
+]
+stdin = "@@@"
+error = "Call to host 'http::post' failed"
