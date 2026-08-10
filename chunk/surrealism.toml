@@ -1,0 +1,4 @@
+[package]
+organisation = "surrealdb"
+name = "chunk"
+version = "1.0.0"
