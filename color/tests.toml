@@ -1,0 +1,119 @@
+[[test]]
+name = "parses a six-digit hex color into channels"
+fn = "hex_to_rgb"
+args = ["'#3366ff'"]
+expect = "[51, 102, 255]"
+
+[[test]]
+name = "expands a three-digit hex color without a leading hash"
+fn = "hex_to_rgb"
+args = ["'f0a'"]
+expect = "[255, 0, 170]"
+
+[[test]]
+name = "rejects a hex color of the wrong length"
+fn = "hex_to_rgb"
+args = ["'#12345'"]
+error = "'#12345' is not a valid hex color"
+
+[[test]]
+name = "formats channels as a hex color"
+fn = "rgb_to_hex"
+args = ["51", "102", "255"]
+expect = "'#3366ff'"
+
+[[test]]
+name = "rejects a channel above 255"
+fn = "rgb_to_hex"
+args = ["256", "0", "0"]
+error = "r must be between 0 and 255, got 256"
+
+[[test]]
+name = "converts channels to hue, saturation and lightness"
+fn = "rgb_to_hsl"
+args = ["51", "102", "255"]
+expect = "[225f, 100f, 60f]"
+
+[[test]]
+name = "rejects a negative channel when converting to HSL"
+fn = "rgb_to_hsl"
+args = ["0", "(-1)", "0"]
+error = "g must be between 0 and 255, got -1"
+
+[[test]]
+name = "converts hue, saturation and lightness back to channels"
+fn = "hsl_to_rgb"
+args = ["225.0", "100.0", "60.0"]
+expect = "[51, 102, 255]"
+
+[[test]]
+name = "lightens a color by percentage points of lightness"
+fn = "lighten"
+args = ["'#3366ff'", "10.0"]
+expect = "'#668cff'"
+
+[[test]]
+name = "rejects an unparseable color when lightening"
+fn = "lighten"
+args = ["'nope'", "10.0"]
+error = "'nope' is not a valid hex color"
+
+[[test]]
+name = "darkens a color by percentage points of lightness"
+fn = "darken"
+args = ["'#3366ff'", "10.0"]
+expect = "'#0040ff'"
+
+[[test]]
+name = "reports white at full relative luminance"
+fn = "luminance"
+args = ["'#ffffff'"]
+expect = "1f"
+
+[[test]]
+name = "reports black at zero relative luminance"
+fn = "luminance"
+args = ["'#000000'"]
+expect = "0f"
+
+[[test]]
+name = "reports the maximum contrast ratio for black on white"
+fn = "contrast_ratio"
+args = ["'#ffffff'", "'#000000'"]
+expect = "21f"
+
+[[test]]
+name = "reports the contrast ratio between two mid-range colors"
+fn = "contrast_ratio"
+args = ["'#3366ff'", "'#ffffff'"]
+contains = "4.68"
+
+[[test]]
+name = "treats white as light"
+fn = "is_light"
+args = ["'#ffffff'"]
+expect = "true"
+
+[[test]]
+name = "treats black as not light"
+fn = "is_light"
+args = ["'#000000'"]
+expect = "false"
+
+[[test]]
+name = "inverts each channel"
+fn = "invert"
+args = ["'#3366ff'"]
+expect = "'#cc9900'"
+
+[[test]]
+name = "rotates the hue by 180 degrees"
+fn = "complementary"
+args = ["'#3366ff'"]
+expect = "'#ffcc33'"
+
+[[test]]
+name = "rejects non-hexadecimal digits"
+fn = "complementary"
+args = ["'#zzzzzz'"]
+error = "'#zzzzzz' is not a valid hex color"

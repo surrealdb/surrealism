@@ -1,0 +1,41 @@
+[[test]]
+name = "returns the created issue"
+fn = "create_issue"
+args = ["'ghp_testtoken'", "'surrealdb'", "'surrealdb'", "'Add tests'", "'Coverage is thin.'"]
+stdin = "{ id: 3311, number: 101, html_url: 'https://github.com/surrealdb/surrealdb/issues/101', state: 'open', title: 'Add tests', body: 'Coverage is thin.' }"
+expect = "{ body: 'Coverage is thin.', html_url: 'https://github.com/surrealdb/surrealdb/issues/101', id: 3311, number: 101, state: 'open', title: 'Add tests' }"
+
+[[test]]
+name = "returns the validation failure when the issue is rejected"
+fn = "create_issue"
+args = ["'ghp_testtoken'", "'surrealdb'", "'surrealdb'", "''", "'Coverage is thin.'"]
+stdin = "{ message: 'Validation Failed', errors: [{ resource: 'Issue', field: 'title', code: 'missing_field' }], documentation_url: 'https://docs.github.com/rest/issues/issues#create-an-issue', status: '422' }"
+contains = "Validation Failed"
+
+[[test]]
+name = "returns the created comment"
+fn = "create_comment"
+args = ["'ghp_testtoken'", "'surrealdb'", "'surrealdb'", "42", "'Thanks for the report.'"]
+stdin = "{ id: 991122, html_url: 'https://github.com/surrealdb/surrealdb/issues/42#issuecomment-991122', body: 'Thanks for the report.', user: { login: 'octocat' } }"
+expect = "{ body: 'Thanks for the report.', html_url: 'https://github.com/surrealdb/surrealdb/issues/42#issuecomment-991122', id: 991122, user: { login: 'octocat' } }"
+
+[[test]]
+name = "fails when the comment request cannot be completed"
+fn = "create_comment"
+args = ["'ghp_testtoken'", "'surrealdb'", "'surrealdb'", "42", "'Thanks for the report.'"]
+stdin = "@@@"
+error = "Call to host 'http::post' failed"
+
+[[test]]
+name = "returns the fetched issue"
+fn = "get_issue"
+args = ["'ghp_testtoken'", "'surrealdb'", "'surrealdb'", "42"]
+stdin = "{ id: 2001, number: 42, state: 'open', title: 'Crash on startup', html_url: 'https://github.com/surrealdb/surrealdb/issues/42', user: { login: 'octocat', id: 583231 }, comments: 3 }"
+expect = "{ comments: 3, html_url: 'https://github.com/surrealdb/surrealdb/issues/42', id: 2001, number: 42, state: 'open', title: 'Crash on startup', user: { id: 583231, login: 'octocat' } }"
+
+[[test]]
+name = "returns the not-found body for a missing issue"
+fn = "get_issue"
+args = ["'ghp_testtoken'", "'surrealdb'", "'surrealdb'", "9999"]
+stdin = "{ message: 'Not Found', documentation_url: 'https://docs.github.com/rest/issues/issues#get-an-issue', status: '404' }"
+contains = "Not Found"

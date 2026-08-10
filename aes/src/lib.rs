@@ -27,8 +27,7 @@ fn encrypt(key: Bytes, plaintext: Bytes) -> Result<Bytes, String> {
 	}
 	let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key));
 	let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
-	let ciphertext =
-		cipher.encrypt(&nonce, plaintext.as_ref()).map_err(|e| e.to_string())?;
+	let ciphertext = cipher.encrypt(&nonce, plaintext.as_ref()).map_err(|e| e.to_string())?;
 	let mut out = nonce.to_vec();
 	out.extend_from_slice(&ciphertext);
 	Ok(Bytes::from(out))

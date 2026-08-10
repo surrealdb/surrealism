@@ -24,7 +24,12 @@ fn post_graphql(api_key: &str, query: &str, variables: Value) -> Result<Value> {
 
 /// Creates an issue on a team.
 #[surrealism]
-fn create_issue(api_key: String, team_id: String, title: String, description: String) -> Result<Value, String> {
+fn create_issue(
+	api_key: String,
+	team_id: String,
+	title: String,
+	description: String,
+) -> Result<Value, String> {
 	post_graphql(
 		&api_key,
 		"mutation($teamId: String!, $title: String!, $description: String!) { issueCreate(input: { teamId: $teamId, title: $title, description: $description }) { success issue { id identifier url } } }",

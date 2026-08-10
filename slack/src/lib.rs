@@ -38,9 +38,6 @@ fn post_message(token: String, channel: String, text: String) -> Result<Value, S
 	if response["ok"].as_bool() == Some(true) {
 		Ok(response)
 	} else {
-		Err(response["error"]
-			.as_str()
-			.unwrap_or("unknown_error")
-			.to_string())
+		Err(response["error"].as_str().unwrap_or("unknown_error").to_string())
 	}
 }

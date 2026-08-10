@@ -1,0 +1,44 @@
+[[test]]
+name = "returns a PHC-format Argon2id hash"
+fn = "hash"
+args = ["'hunter2'"]
+contains = "$argon2id$"
+
+[[test]]
+name = "embeds the algorithm version and parameters in the hash"
+fn = "hash"
+args = ["'correct horse battery staple'"]
+contains = "$v=19$m=19456,t=2,p=1$"
+
+[[test]]
+name = "accepts the password a stored hash was made from"
+fn = "verify"
+args = [
+	"'hunter2'",
+	"'$argon2id$v=19$m=19456,t=2,p=1$cP64VeS0DcR5+Q5BkW17iw$ylos52O8pGNJU4ctEAxgRbeXRVK7BrWnxpdz5HBZL+Q'",
+]
+expect = "true"
+
+[[test]]
+name = "rejects a different password against the same hash"
+fn = "verify"
+args = [
+	"'hunter3'",
+	"'$argon2id$v=19$m=19456,t=2,p=1$cP64VeS0DcR5+Q5BkW17iw$ylos52O8pGNJU4ctEAxgRbeXRVK7BrWnxpdz5HBZL+Q'",
+]
+expect = "false"
+
+[[test]]
+name = "rejects an empty password against the same hash"
+fn = "verify"
+args = [
+	"''",
+	"'$argon2id$v=19$m=19456,t=2,p=1$cP64VeS0DcR5+Q5BkW17iw$ylos52O8pGNJU4ctEAxgRbeXRVK7BrWnxpdz5HBZL+Q'",
+]
+expect = "false"
+
+[[test]]
+name = "fails on a malformed hash string"
+fn = "verify"
+args = ["'hunter2'", "'not-a-phc-hash'"]
+error = "password hash string missing field"

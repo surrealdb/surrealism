@@ -1,0 +1,47 @@
+[[test]]
+name = "stems an English inflected verb to its root"
+fn = "stem"
+args = ["'running'", "'english'"]
+expect = "'run'"
+
+[[test]]
+name = "stems an English noun suffix"
+fn = "stem"
+args = ["'happiness'", "'english'"]
+expect = "'happi'"
+
+[[test]]
+name = "stems a German word"
+fn = "stem"
+args = ["'laufen'", "'german'"]
+expect = "'lauf'"
+
+[[test]]
+name = "rejects an unsupported language"
+fn = "stem"
+args = ["'running'", "'klingon'"]
+error = "Unrecognized language: klingon"
+
+[[test]]
+name = "stems every word in a list"
+fn = "stem_words"
+args = ["['running', 'jumps', 'easily']", "'english'"]
+expect = "['run', 'jump', 'easili']"
+
+[[test]]
+name = "returns an empty list for no words"
+fn = "stem_words"
+args = ["[]", "'english'"]
+expect = "[]"
+
+[[test]]
+name = "stems a list of Spanish words"
+fn = "stem_words"
+args = ["['corriendo', 'hablando']", "'spanish'"]
+expect = "['corr', 'habl']"
+
+[[test]]
+name = "rejects a language name that is not lowercase"
+fn = "stem_words"
+args = ["['running']", "'English'"]
+error = "Unrecognized language: English"

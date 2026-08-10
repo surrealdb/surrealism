@@ -1,0 +1,27 @@
+[[test]]
+name = "returns the breach count for a matching hash suffix"
+fn = "check_password"
+args = ["'password'"]
+stdin = "'1E4C9B93F3F0682250B6CF8331B7EE68FD8:9659365\\r\\n003D68EB55068C33ACE09247EE4C639306B:3'"
+expect = "9659365"
+
+[[test]]
+name = "returns zero when no suffix in the range matches"
+fn = "check_password"
+args = ["'correct horse battery staple xyzzy-2891'"]
+stdin = "'0018A45C4D1DEF81644B54AB7F969B88D65:1\\r\\n00D4F6E8FA6EECAD2A3AA415EEC418D38EC:2'"
+expect = "0"
+
+[[test]]
+name = "rejects a range line whose count is not a number"
+fn = "check_password"
+args = ["'password'"]
+stdin = "'1E4C9B93F3F0682250B6CF8331B7EE68FD8:lots'"
+error = "invalid digit found in string"
+
+[[test]]
+name = "fails when the range request cannot be delivered"
+fn = "check_password"
+args = ["'hunter2'"]
+stdin = ""
+error = "Call to host 'http::get' failed"

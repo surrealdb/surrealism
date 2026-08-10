@@ -1,0 +1,45 @@
+[[test]]
+name = "returns the session did and access token"
+fn = "create_session"
+args = ["'alice.bsky.social'", "'abcd-efgh-ijkl-mnop'"]
+stdin = "{ did: 'did:plc:z72i7hdynmk6r22z27h6tvur', handle: 'alice.bsky.social', email: 'alice@example.com', emailConfirmed: true, accessJwt: 'eyJhbGciOiJFUzI1NksifQ.eyJzY29wZSI6ImNvbS5hdHByb3RvLmFjY2VzcyJ9.sig', refreshJwt: 'eyJhbGciOiJFUzI1NksifQ.eyJzY29wZSI6ImNvbS5hdHByb3RvLnJlZnJlc2gifQ.sig', active: true }"
+contains = "did:plc:z72i7hdynmk6r22z27h6tvur"
+
+[[test]]
+name = "returns an authentication failure payload unchanged"
+fn = "create_session"
+args = ["'alice.bsky.social'", "'wrong-password'"]
+stdin = "{ error: 'AuthenticationRequired', message: 'Invalid identifier or password' }"
+contains = "AuthenticationRequired"
+
+[[test]]
+name = "returns the at-uri and cid of the created post"
+fn = "post"
+args = [
+  "'eyJhbGciOiJFUzI1NksifQ.eyJzY29wZSI6ImNvbS5hdHByb3RvLmFjY2VzcyJ9.sig'",
+  "'did:plc:z72i7hdynmk6r22z27h6tvur'",
+  "'Hello, Bluesky!'",
+]
+stdin = "{ uri: 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.post/3kzq4m2xk7t2b', cid: 'bafyreihgmyh2srmlyk4ynmk6r22z27h6tvurdvgjtqekz3f4kq5xj6tzsy', commit: { cid: 'bafyreidfbxyz7uqk2c3vlq6h5t4nmk6r22z27h6tvurdvgjtqekz3f4kq5', rev: '3kzq4m2xk7t2b' }, validationStatus: 'valid' }"
+contains = "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.post/3kzq4m2xk7t2b"
+
+[[test]]
+name = "returns an expired-token error payload unchanged"
+fn = "post"
+args = [
+  "'eyJhbGciOiJFUzI1NksifQ.expired.sig'",
+  "'did:plc:z72i7hdynmk6r22z27h6tvur'",
+  "'Hello, Bluesky!'",
+]
+stdin = "{ error: 'ExpiredToken', message: 'Token has expired' }"
+contains = "ExpiredToken"
+
+[[test]]
+name = "fails when the createRecord request cannot be completed"
+fn = "post"
+args = [
+  "'eyJhbGciOiJFUzI1NksifQ.eyJzY29wZSI6ImNvbS5hdHByb3RvLmFjY2VzcyJ9.sig'",
+  "'did:plc:z72i7hdynmk6r22z27h6tvur'",
+  "'Hello, Bluesky!'",
+]
+error = "Call to host 'http::post' failed"

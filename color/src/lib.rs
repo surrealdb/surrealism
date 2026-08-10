@@ -1,7 +1,7 @@
 //! Color conversion, manipulation, and accessibility functions for Surrealism.
 //!
-//! Register with e.g. `DEFINE MODULE color AS f"bucket:/color.surli";` and call
-//! `color::hex_to_rgb("#3366ff")`, `color::lighten("#3366ff", 10)`, etc.
+//! Register with e.g. `DEFINE MODULE mod::color AS f"bucket:/color.surli";` and call
+//! `mod::color::hex_to_rgb("#3366ff")`, `mod::color::lighten("#3366ff", 10)`, etc.
 
 use surrealism::surrealism;
 
@@ -46,9 +46,18 @@ fn rgb_to_hsl_f(r: u8, g: u8, b: u8) -> (f64, f64, f64) {
 		return (0.0, 0.0, l * 100.0);
 	}
 	let d = max - min;
-	let s = if l > 0.5 { d / (2.0 - max - min) } else { d / (max + min) };
+	let s = if l > 0.5 {
+		d / (2.0 - max - min)
+	} else {
+		d / (max + min)
+	};
 	let mut h = if max == r {
-		(g - b) / d + if g < b { 6.0 } else { 0.0 }
+		(g - b) / d
+			+ if g < b {
+				6.0
+			} else {
+				0.0
+			}
 	} else if max == g {
 		(b - r) / d + 2.0
 	} else {
@@ -66,7 +75,11 @@ fn hsl_to_rgb_f(h: f64, s: f64, l: f64) -> (u8, u8, u8) {
 		let v = (l * 255.0).round() as u8;
 		return (v, v, v);
 	}
-	let q = if l < 0.5 { l * (1.0 + s) } else { l + s - l * s };
+	let q = if l < 0.5 {
+		l * (1.0 + s)
+	} else {
+		l + s - l * s
+	};
 	let p = 2.0 * l - q;
 	let hue_to_rgb = |t: f64| -> f64 {
 		let t = if t < 0.0 {
@@ -95,7 +108,11 @@ fn hsl_to_rgb_f(h: f64, s: f64, l: f64) -> (u8, u8, u8) {
 
 fn channel_luminance(c: u8) -> f64 {
 	let c = f64::from(c) / 255.0;
-	if c <= 0.03928 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
+	if c <= 0.03928 {
+		c / 12.92
+	} else {
+		((c + 0.055) / 1.055).powf(2.4)
+	}
 }
 
 /// WCAG 2.x relative luminance, in `[0, 1]`.
@@ -120,7 +137,8 @@ fn rgb_to_hex(r: i64, g: i64, b: i64) -> Result<String, String> {
 /// in degrees `[0, 360)` and `s`/`l` are percentages `[0, 100]`.
 #[surrealism]
 fn rgb_to_hsl(r: i64, g: i64, b: i64) -> Result<(f64, f64, f64), String> {
-	let (r, g, b) = (validate_channel("r", r)?, validate_channel("g", g)?, validate_channel("b", b)?);
+	let (r, g, b) =
+		(validate_channel("r", r)?, validate_channel("g", g)?, validate_channel("b", b)?);
 	Ok(rgb_to_hsl_f(r, g, b))
 }
 
@@ -166,7 +184,11 @@ fn contrast_ratio(hex_a: String, hex_b: String) -> Result<f64, String> {
 	let (rb, gb, bb) = parse_hex(&hex_b)?;
 	let la = relative_luminance(ra, ga, ba);
 	let lb = relative_luminance(rb, gb, bb);
-	let (lighter, darker) = if la > lb { (la, lb) } else { (lb, la) };
+	let (lighter, darker) = if la > lb {
+		(la, lb)
+	} else {
+		(lb, la)
+	};
 	Ok((lighter + 0.05) / (darker + 0.05))
 }
 

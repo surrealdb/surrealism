@@ -51,11 +51,10 @@ fn split_sentences(text: &str) -> Vec<&str> {
 			}
 			if end >= len || bytes[end].is_ascii_whitespace() {
 				if b == b'.' {
-					let word_start =
-						text[start..i].rfind(char::is_whitespace).map_or(start, |p| {
-							let width = text[start + p..].chars().next().map_or(1, char::len_utf8);
-							start + p + width
-						});
+					let word_start = text[start..i].rfind(char::is_whitespace).map_or(start, |p| {
+						let width = text[start + p..].chars().next().map_or(1, char::len_utf8);
+						start + p + width
+					});
 					let word = &text[word_start..i];
 					let lower = word.to_ascii_lowercase();
 					if matches!(

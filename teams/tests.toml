@@ -1,0 +1,49 @@
+[[test]]
+name = "posts a message card to an incoming webhook"
+fn = "send"
+args = ["'https://outlook.office.com/webhook/abc/IncomingWebhook/def/ghi'", "'Nightly backup finished'"]
+stdin = "1"
+expect = "'1'"
+
+[[test]]
+name = "returns a webhook rejection body unchanged"
+fn = "send"
+args = ["'https://outlook.office.com/webhook/abc/IncomingWebhook/def/ghi'", "'Nightly backup finished'"]
+stdin = "'Invalid webhook request. Microsoft Teams endpoint returned HTTP error 400'"
+contains = "HTTP error 400"
+
+[[test]]
+name = "posts a channel message through the Graph API"
+fn = "post_channel_message"
+args = [
+  "'eyJ0eXAiOiJKV1Qi.test'",
+  "'02bd9fd6-8f93-4758-87c3-1fb73740a315'",
+  "'19:abc123@thread.tacv2'",
+  "'Deploy complete'",
+]
+stdin = "{ id: '1616989510408', etag: '1616989510408', messageType: 'message', createdDateTime: '2021-03-29T04:25:10.408Z', importance: 'normal', webUrl: 'https://teams.microsoft.com/l/message/19:abc123@thread.tacv2/1616989510408', from: { user: { id: '8ea0e38b-efb3-4757-924a-5f94061cf8c2', displayName: 'Ana Bowman', userIdentityType: 'aadUser' } }, body: { contentType: 'text', content: 'Deploy complete' } }"
+contains = "id: '1616989510408'"
+
+[[test]]
+name = "returns the posted message body from the Graph API response"
+fn = "post_channel_message"
+args = [
+  "'eyJ0eXAiOiJKV1Qi.test'",
+  "'02bd9fd6-8f93-4758-87c3-1fb73740a315'",
+  "'19:abc123@thread.tacv2'",
+  "'Deploy complete'",
+]
+stdin = "{ id: '1616989510408', etag: '1616989510408', messageType: 'message', createdDateTime: '2021-03-29T04:25:10.408Z', importance: 'normal', from: { user: { id: '8ea0e38b-efb3-4757-924a-5f94061cf8c2', displayName: 'Ana Bowman', userIdentityType: 'aadUser' } }, body: { contentType: 'text', content: 'Deploy complete' } }"
+contains = "body: { content: 'Deploy complete', contentType: 'text' }"
+
+[[test]]
+name = "returns a Graph API error payload unchanged"
+fn = "post_channel_message"
+args = [
+  "'expired-token'",
+  "'02bd9fd6-8f93-4758-87c3-1fb73740a315'",
+  "'19:abc123@thread.tacv2'",
+  "'Deploy complete'",
+]
+stdin = "{ error: { code: 'InvalidAuthenticationToken', message: 'Access token has expired or is not yet valid.', innerError: { date: '2021-03-29T04:25:10', 'request-id': '3d1a4b2c-5e6f-7a8b-9c0d-1e2f3a4b5c6d' } } }"
+contains = "code: 'InvalidAuthenticationToken'"

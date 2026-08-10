@@ -1,0 +1,41 @@
+[[test]]
+name = "encodes bytes as Base58"
+fn = "encode"
+args = ['b"68656c6c6f20776f726c64"']
+expect = "'StV1DL6CwTryKyV'"
+
+[[test]]
+name = "encodes empty input as an empty string"
+fn = "encode"
+args = ['b""']
+expect = "''"
+
+[[test]]
+name = "decodes Base58 back into the original bytes"
+fn = "decode"
+args = ["'StV1DL6CwTryKyV'"]
+expect = 'b"68656C6C6F20776F726C64"'
+
+[[test]]
+name = "rejects characters outside the Base58 alphabet"
+fn = "decode"
+args = ["'0OIl'"]
+error = "invalid character '0'"
+
+[[test]]
+name = "encodes bytes as Base58Check with a trailing checksum"
+fn = "encode_check"
+args = ['b"68656c6c6f20776f726c64"']
+expect = "'3vQB7B6MrGQZaxCuFg4oh'"
+
+[[test]]
+name = "decodes Base58Check and strips the checksum"
+fn = "decode_check"
+args = ["'3vQB7B6MrGQZaxCuFg4oh'"]
+expect = 'b"68656C6C6F20776F726C64"'
+
+[[test]]
+name = "rejects a Base58Check string whose checksum does not match"
+fn = "decode_check"
+args = ["'3vQB7B6MrGQZaxCuFg4oi'"]
+error = "invalid checksum"

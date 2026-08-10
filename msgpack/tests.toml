@@ -1,0 +1,41 @@
+[[test]]
+name = "encodes an object with a nested array"
+fn = "encode"
+args = ["{ name: 'Ferris', tags: ['a', 'b'] }"]
+expect = 'b"82A46E616D65A6466572726973A47461677392A161A162"'
+
+[[test]]
+name = "encodes an integer into a single byte"
+fn = "encode"
+args = ["42"]
+expect = 'b"2A"'
+
+[[test]]
+name = "encodes a heterogeneous array"
+fn = "encode"
+args = ["[1, 'two', true, NONE]"]
+expect = 'b"9401A374776FC3C0"'
+
+[[test]]
+name = "decodes an object back to its fields"
+fn = "decode"
+args = ['b"82A46E616D65A6466572726973A47461677392A161A162"']
+expect = "{ name: 'Ferris', tags: ['a', 'b'] }"
+
+[[test]]
+name = "decodes an integer"
+fn = "decode"
+args = ['b"2A"']
+expect = "42"
+
+[[test]]
+name = "rejects a reserved msgpack marker"
+fn = "decode"
+args = ['b"c1"']
+error = "wrong msgpack marker"
+
+[[test]]
+name = "rejects empty input"
+fn = "decode"
+args = ['b""']
+error = true

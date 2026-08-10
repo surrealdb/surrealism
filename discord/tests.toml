@@ -1,0 +1,37 @@
+[[test]]
+name = "posts plain content to a webhook and returns the created message"
+fn = "send"
+args = ["'https://discord.com/api/webhooks/1122334455667788990/tokenvalue'", "'Deployment finished'"]
+stdin = "{ id: '1234567890123456789', type: 0, content: 'Deployment finished', channel_id: '9876543210987654321', author: { id: '1122334455667788990', username: 'SurrealDB', discriminator: '0000', bot: true }, attachments: [], embeds: [], mentions: [], mention_roles: [], pinned: false, mention_everyone: false, tts: false, timestamp: '2025-01-01T00:00:00.000000+00:00', flags: 0, components: [], webhook_id: '1122334455667788990' }"
+contains = "Deployment finished"
+
+[[test]]
+name = "returns a Discord webhook rejection unchanged"
+fn = "send"
+args = ["'https://discord.com/api/webhooks/1122334455667788990/badtoken'", "'Deployment finished'"]
+stdin = "{ message: 'Unknown Webhook', code: 10015 }"
+contains = "Unknown Webhook"
+
+[[test]]
+name = "posts a coloured embed and returns the created message"
+fn = "send_embed"
+args = [
+  "'https://discord.com/api/webhooks/1122334455667788990/tokenvalue'",
+  "'Build failed'",
+  "'main is red on aarch64'",
+  "16711680",
+]
+stdin = "{ id: '1234567890123456789', type: 0, content: '', channel_id: '9876543210987654321', embeds: [ { type: 'rich', title: 'Build failed', description: 'main is red on aarch64', color: 16711680 } ], attachments: [], mentions: [], mention_roles: [], pinned: false, mention_everyone: false, tts: false, timestamp: '2025-01-01T00:00:00.000000+00:00', flags: 0, webhook_id: '1122334455667788990' }"
+contains = "Build failed"
+
+[[test]]
+name = "returns an embed validation error unchanged"
+fn = "send_embed"
+args = [
+  "'https://discord.com/api/webhooks/1122334455667788990/tokenvalue'",
+  "'Build failed'",
+  "'main is red on aarch64'",
+  "(-1)",
+]
+stdin = "{ message: 'Invalid Form Body', code: 50035, errors: { embeds: { '0': { color: { _errors: [ { code: 'NUMBER_TYPE_MIN', message: 'int value should be greater than or equal to 0.' } ] } } } } }"
+contains = "Invalid Form Body"

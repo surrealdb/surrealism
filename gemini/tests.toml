@@ -1,0 +1,41 @@
+[[test]]
+name = "returns the embedding vector from an embedContent response"
+fn = "embed"
+args = ["'AIza-test'", "'gemini-embedding-001'", "'Hello, world!'"]
+stdin = "{ embedding: { values: [0.013168523, -0.008711934, 0.046699738] } }"
+expect = "[0.013168523f, -0.008711934f, 0.046699738f]"
+
+[[test]]
+name = "rejects an embedding response carrying an error instead of values"
+fn = "embed"
+args = ["'bad-key'", "'gemini-embedding-001'", "'Hello, world!'"]
+stdin = "{ error: { code: 400, message: 'API key not valid. Please pass a valid API key.', status: 'INVALID_ARGUMENT' } }"
+error = "Response contained no embedding values"
+
+[[test]]
+name = "rejects an embedding holding a non-numeric value"
+fn = "embed"
+args = ["'AIza-test'", "'gemini-embedding-001'", "'Hello, world!'"]
+stdin = "{ embedding: { values: [0.013168523, 'x'] } }"
+error = "Embedding contains a non-numeric value"
+
+[[test]]
+name = "returns the generated text from a generateContent response"
+fn = "generate"
+args = ["'AIza-test'", "'gemini-2.5-flash'", "'What is the capital of France?'"]
+stdin = "{ candidates: [ { content: { parts: [ { text: 'Paris is the capital of France.' } ], role: 'model' }, finishReason: 'STOP', index: 0 } ], usageMetadata: { promptTokenCount: 7, candidatesTokenCount: 8, totalTokenCount: 15 }, modelVersion: 'gemini-2.5-flash' }"
+expect = "'Paris is the capital of France.'"
+
+[[test]]
+name = "rejects a generation response carrying an error instead of candidates"
+fn = "generate"
+args = ["'bad-key'", "'gemini-2.5-flash'", "'What is the capital of France?'"]
+stdin = "{ error: { code: 400, message: 'API key not valid. Please pass a valid API key.', status: 'INVALID_ARGUMENT' } }"
+error = "Response contained no generated text"
+
+[[test]]
+name = "rejects a candidate blocked before any text was produced"
+fn = "generate"
+args = ["'AIza-test'", "'gemini-2.5-flash'", "'What is the capital of France?'"]
+stdin = "{ candidates: [ { content: { role: 'model' }, finishReason: 'SAFETY', index: 0 } ], usageMetadata: { promptTokenCount: 7, totalTokenCount: 7 }, modelVersion: 'gemini-2.5-flash' }"
+error = "Response contained no generated text"

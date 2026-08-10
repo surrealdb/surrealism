@@ -1,0 +1,35 @@
+[[test]]
+name = "returns the created notification for a segment send"
+fn = "send"
+args = [
+  "'os_v2_app_testkey'",
+  "'b2f7f966-d8cc-11e4-bed1-df8f05be55ba'",
+  "'Deploy finished'",
+  "'Subscribed Users'",
+]
+stdin = "{ id: '458dcec4-cf53-11e3-add2-000c2940e62c', external_id: NONE, recipients: 3 }"
+expect = "{ external_id: NULL, id: '458dcec4-cf53-11e3-add2-000c2940e62c', recipients: 3 }"
+
+[[test]]
+name = "returns the API error payload for a rejected notification"
+fn = "send"
+args = [
+  "'os_v2_app_testkey'",
+  "'b2f7f966-d8cc-11e4-bed1-df8f05be55ba'",
+  "''",
+  "'Subscribed Users'",
+]
+stdin = "{ errors: ['Message Notifications must have English language content'] }"
+contains = "Message Notifications must have English language content"
+
+[[test]]
+name = "fails when the request cannot be delivered"
+fn = "send"
+args = [
+  "'os_v2_app_testkey'",
+  "'b2f7f966-d8cc-11e4-bed1-df8f05be55ba'",
+  "'Nightly report ready'",
+  "'Active Users'",
+]
+stdin = ""
+error = "Call to host 'http::post' failed"

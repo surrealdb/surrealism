@@ -14,7 +14,11 @@ fn post_json_with_headers(url: &str, body: Value, headers: Value) -> Result<Valu
 
 /// Publishes a status on the given Mastodon instance.
 #[surrealism]
-fn post_status(instance_url: String, access_token: String, status: String) -> Result<Value, String> {
+fn post_status(
+	instance_url: String,
+	access_token: String,
+	status: String,
+) -> Result<Value, String> {
 	post_json_with_headers(
 		&format!("{instance_url}/api/v1/statuses"),
 		json!({ "status": status }),

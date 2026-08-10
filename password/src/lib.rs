@@ -3,9 +3,9 @@
 //! Register with e.g. `DEFINE MODULE mod::password AS f"bucket:/password.surli";`
 //! and call `mod::password::hash("hunter2")`, `mod::password::verify("hunter2", hash)`.
 
+use argon2::Argon2;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
-use argon2::Argon2;
 use surrealism::surrealism;
 
 /// Hashes `password` with Argon2 (default params) and returns a self-contained
@@ -13,9 +13,8 @@ use surrealism::surrealism;
 #[surrealism]
 fn hash(password: String) -> Result<String, String> {
 	let salt = SaltString::generate(&mut OsRng);
-	let hash = Argon2::default()
-		.hash_password(password.as_bytes(), &salt)
-		.map_err(|e| e.to_string())?;
+	let hash =
+		Argon2::default().hash_password(password.as_bytes(), &salt).map_err(|e| e.to_string())?;
 	Ok(hash.to_string())
 }
 

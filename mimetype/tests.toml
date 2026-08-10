@@ -1,0 +1,35 @@
+[[test]]
+name = "detects a PNG from its magic bytes"
+fn = "detect"
+args = ['b"89504e470d0a1a0a0000000d49484452"']
+expect = "'image/png'"
+
+[[test]]
+name = "detects a PDF from its magic bytes"
+fn = "detect"
+args = ['b"255044462d312e370a25"']
+expect = "'application/pdf'"
+
+[[test]]
+name = "returns none for unrecognized bytes"
+fn = "detect"
+args = ['b"68656c6c6f"']
+expect = "NONE"
+
+[[test]]
+name = "returns the extension of a PNG"
+fn = "extension"
+args = ['b"89504e470d0a1a0a0000000d49484452"']
+expect = "'png'"
+
+[[test]]
+name = "returns the extension of a GIF"
+fn = "extension"
+args = ['b"474946383961010001008000"']
+expect = "'gif'"
+
+[[test]]
+name = "returns no extension for unrecognized bytes"
+fn = "extension"
+args = ['b"68656c6c6f"']
+expect = "NONE"

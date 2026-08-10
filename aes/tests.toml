@@ -1,0 +1,42 @@
+[[test]]
+name = "generates a key"
+fn = "generate_key"
+args = []
+
+[[test]]
+name = "encrypts with a 32-byte key"
+fn = "encrypt"
+args = [
+	'b"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"',
+	'b"68656c6c6f"',
+]
+
+[[test]]
+name = "rejects a key that is not 32 bytes"
+fn = "encrypt"
+args = ['b"0001020304"', 'b"68656c6c6f"']
+error = "Key must be 32 bytes, got 5"
+
+[[test]]
+name = "recovers the plaintext from nonce and ciphertext"
+fn = "decrypt"
+args = [
+	'b"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"',
+	'b"DCB4F178E12F4CB83E346F654962219F12CFAC4196DAEF4AD5D980DA7AB29D37AC"',
+]
+expect = 'b"68656C6C6F"'
+
+[[test]]
+name = "rejects data too short to hold a nonce"
+fn = "decrypt"
+args = ['b"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"', 'b"00112233"']
+error = "Data must be longer than 12 bytes"
+
+[[test]]
+name = "rejects data that fails its authentication tag"
+fn = "decrypt"
+args = [
+	'b"1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100"',
+	'b"DCB4F178E12F4CB83E346F654962219F12CFAC4196DAEF4AD5D980DA7AB29D37AC"',
+]
+error = true

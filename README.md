@@ -93,6 +93,26 @@ surreal module info <name>.surli
 surreal module run --fnc <function> --arg <value> <name>.surli
 ```
 
+The toolchain, target and lint components are pinned in `rust-toolchain.toml`,
+and each module's dependencies are pinned by its own committed `Cargo.lock`.
+
+## Testing
+
+Each module has a `tests.toml` listing its cases, run by a shared script:
+
+```bash
+python3 scripts/run-module-tests.py <name> --build
+```
+
+Functions that reach the network delegate to a host function, and the CLI
+intercepts those: it prints the resolved call and reads a mocked response from
+stdin. A case supplies that response in its `stdin` field, so modules like
+`slack` and `openai` are tested without a server, credentials, or network
+access. See the script's docstring for the full manifest schema.
+
+CI runs the same script, plus `cargo clippy -D warnings` and
+`cargo fmt --check`, against every module on each push and pull request.
+
 ## Using from SurrealQL
 
 Module names in `DEFINE MODULE` and in calls are prefixed with the literal

@@ -10,9 +10,7 @@ use icalendar::{Calendar, Component, Event, EventLike};
 use surrealism::surrealism;
 
 fn parse_rfc3339(value: &str) -> Result<DateTime<Utc>, String> {
-	DateTime::parse_from_rfc3339(value)
-		.map(|dt| dt.with_timezone(&Utc))
-		.map_err(|e| e.to_string())
+	DateTime::parse_from_rfc3339(value).map(|dt| dt.with_timezone(&Utc)).map_err(|e| e.to_string())
 }
 
 /// Builds a single-event .ics calendar and returns the full iCalendar text.

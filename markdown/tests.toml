@@ -1,0 +1,35 @@
+[[test]]
+name = "renders a heading"
+fn = "to_html"
+args = ["'## Hello'"]
+expect = "'<h2>Hello</h2>\\n'"
+
+[[test]]
+name = "renders emphasis and links inside a paragraph"
+fn = "to_html"
+args = ["'Some **bold** and a [link](https://example.com).'"]
+expect = "'<p>Some <strong>bold</strong> and a <a href=\"https://example.com\">link</a>.</p>\\n'"
+
+[[test]]
+name = "renders strikethrough"
+fn = "to_html"
+args = ["'~~gone~~'"]
+expect = "'<p><del>gone</del></p>\\n'"
+
+[[test]]
+name = "renders a pipe table"
+fn = "to_html"
+args = ["'| a | b |\\n| - | - |\\n| 1 | 2 |'"]
+expect = "'<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>\\n<tr><td>1</td><td>2</td></tr>\\n</tbody></table>\\n'"
+
+[[test]]
+name = "renders task list checkboxes"
+fn = "to_html"
+args = ["'- [x] done\\n- [ ] todo'"]
+contains = "type=\"checkbox\" checked=\"\""
+
+[[test]]
+name = "returns an empty string for empty input"
+fn = "to_html"
+args = ["''"]
+expect = "''"

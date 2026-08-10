@@ -1,0 +1,17 @@
+[[test]]
+name = "rejects a broker given as a hostname rather than ip:port"
+fn = "produce"
+args = ["'kafka.internal:9092'", "'events'", "'user-42'", "{ type: 'signup' }"]
+error = "is not a literal ip:port address"
+
+[[test]]
+name = "rejects a broker address with no port"
+fn = "produce"
+args = ["'127.0.0.1'", "'events'", "''", "'hello'"]
+error = "is not a literal ip:port address"
+
+[[test]]
+name = "reports a broker that refuses the connection"
+fn = "produce"
+args = ["'127.0.0.1:1'", "'events'", "'user-42'", "NONE"]
+error = "Failed to connect to 127.0.0.1:1"

@@ -1,0 +1,71 @@
+[[test]]
+name = "hashes text with SHA-256"
+fn = "sha256"
+args = ["'hello'"]
+expect = "'2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'"
+
+[[test]]
+name = "hashes the empty string with SHA-256"
+fn = "sha256"
+args = ["''"]
+expect = "'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'"
+
+[[test]]
+name = "hashes text with SHA-512"
+fn = "sha512"
+args = ["'hello'"]
+expect = "'9b71d224bd62f3785d96d46ad3ea3d73319bfbc2890caadae2dff72519673ca72323c3d99ba5c11d7c7acc6e14b8c5da0c4663475c2e5c3adef46f73bcdec043'"
+
+[[test]]
+name = "hashes text with MD5"
+fn = "md5"
+args = ["'hello'"]
+expect = "'5d41402abc4b2a76b9719d911017c592'"
+
+[[test]]
+name = "signs a message with HMAC-SHA256"
+fn = "hmac_sha256"
+args = ["'hello'", "'secret-key'"]
+expect = "'98e7ffb964bb5a3f902db1fc101a5baa98b6f2cd56858210c9d70f26ac762fc7'"
+
+[[test]]
+name = "produces a different HMAC under a different key"
+fn = "hmac_sha256"
+args = ["'hello'", "'other-key'"]
+expect = "'d12a863ea3dc20928e2a5cc568e850cd335484abeb38e94a2fbd663b1096a2a6'"
+
+[[test]]
+name = "encodes text as standard base64"
+fn = "base64::encode"
+args = ["'hello world'"]
+expect = "'aGVsbG8gd29ybGQ='"
+
+[[test]]
+name = "round-trips base64 back to the original text"
+fn = "base64::decode"
+args = ["'aGVsbG8gd29ybGQ='"]
+expect = "'hello world'"
+
+[[test]]
+name = "rejects input that is not valid base64"
+fn = "base64::decode"
+args = ["'not base64!!'"]
+error = "Invalid symbol"
+
+[[test]]
+name = "encodes text as lowercase hex"
+fn = "hex::encode"
+args = ["'hello'"]
+expect = "'68656c6c6f'"
+
+[[test]]
+name = "round-trips hex back to the original text"
+fn = "hex::decode"
+args = ["'68656c6c6f'"]
+expect = "'hello'"
+
+[[test]]
+name = "rejects a hex string with a non-hex character"
+fn = "hex::decode"
+args = ["'zz'"]
+error = "Invalid character 'z'"

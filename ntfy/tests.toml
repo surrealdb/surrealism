@@ -1,0 +1,27 @@
+[[test]]
+name = "publishes a plain-text notification and returns the accepted message"
+fn = "send"
+args = ["'surrealdb-alerts'", "'Backup finished'"]
+stdin = "{ id: 'bUAiKesbSg2f', time: 1735689600, expires: 1735732800, event: 'message', topic: 'surrealdb-alerts', message: 'Backup finished' }"
+expect = "{ event: 'message', expires: 1735732800, id: 'bUAiKesbSg2f', message: 'Backup finished', time: 1735689600, topic: 'surrealdb-alerts' }"
+
+[[test]]
+name = "returns an ntfy rejection body unchanged"
+fn = "send"
+args = ["'surrealdb-alerts'", "'Backup finished'"]
+stdin = "{ code: 40801, http: 400, error: 'invalid request: message too large' }"
+contains = "error: 'invalid request: message too large'"
+
+[[test]]
+name = "publishes a titled notification and returns the accepted message"
+fn = "send_titled"
+args = ["'ops'", "'Disk full'", "'Volume /data at 95%'"]
+stdin = "{ id: 'xY9zAbCdEf12', time: 1735689600, expires: 1735732800, event: 'message', topic: 'ops', title: 'Disk full', message: 'Volume /data at 95%' }"
+expect = "{ event: 'message', expires: 1735732800, id: 'xY9zAbCdEf12', message: 'Volume /data at 95%', time: 1735689600, title: 'Disk full', topic: 'ops' }"
+
+[[test]]
+name = "returns the topic the titled notification was published to"
+fn = "send_titled"
+args = ["'ops'", "'Deploy'", "'v1.4.2 is live'"]
+stdin = "{ id: 'Q1w2E3r4T5y6', time: 1735689600, expires: 1735732800, event: 'message', topic: 'ops', title: 'Deploy', message: 'v1.4.2 is live' }"
+contains = "topic: 'ops'"

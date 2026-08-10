@@ -1,0 +1,13 @@
+[[test]]
+name = "posts a webhook message"
+fn = "send"
+args = ["'https://hooks.slack.com/services/T/B/x'", "'hello'"]
+stdin = "{ ok: true }"
+contains = "ok"
+
+[[test]]
+name = "surfaces an ok:false Web API response as an error"
+fn = "post_message"
+args = ["'xoxb-test'", "'C0123'", "'hello'"]
+stdin = "{ ok: false, error: 'channel_not_found' }"
+error = "channel_not_found"

@@ -1,0 +1,27 @@
+[[test]]
+name = "returns the dedup key for a triggered incident"
+fn = "trigger"
+args = ["'R0ABCDE1234567890'", "'Disk usage above 90%'", "'db-node-01'", "'critical'"]
+stdin = "{ status: 'success', message: 'Event processed', dedup_key: 'a1b2c3d4e5f6' }"
+expect = "{ dedup_key: 'a1b2c3d4e5f6', message: 'Event processed', status: 'success' }"
+
+[[test]]
+name = "returns the rejection when the severity is not a valid level"
+fn = "trigger"
+args = ["'R0ABCDE1234567890'", "'Disk usage above 90%'", "'db-node-01'", "'catastrophic'"]
+stdin = "{ status: 'invalid event', message: 'Event object is invalid', errors: ['Event object is invalid'] }"
+contains = "invalid event"
+
+[[test]]
+name = "resolves an incident by its dedup key"
+fn = "resolve"
+args = ["'R0ABCDE1234567890'", "'a1b2c3d4e5f6'"]
+stdin = "{ status: 'success', message: 'Event processed', dedup_key: 'a1b2c3d4e5f6' }"
+expect = "{ dedup_key: 'a1b2c3d4e5f6', message: 'Event processed', status: 'success' }"
+
+[[test]]
+name = "fails when the enqueue request cannot be completed"
+fn = "resolve"
+args = ["'R0ABCDE1234567890'", "'a1b2c3d4e5f6'"]
+stdin = "@@@"
+error = "Call to host 'http::post' failed"

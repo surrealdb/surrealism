@@ -1,0 +1,113 @@
+[[test]]
+name = "slugifies a phrase with punctuation"
+fn = "slugify"
+args = ["'Hello, World!'"]
+expect = "'hello-world'"
+
+[[test]]
+name = "transliterates accented characters when slugifying"
+fn = "slugify"
+args = ["'Café Münster 2024'"]
+expect = "'cafe-munster-2024'"
+
+[[test]]
+name = "truncates to a character count"
+fn = "truncate"
+args = ["'Hello, World!'", "5"]
+expect = "'Hello'"
+
+[[test]]
+name = "leaves a string shorter than the limit untouched"
+fn = "truncate"
+args = ["'Hi'", "10"]
+expect = "'Hi'"
+
+[[test]]
+name = "rejects a negative length"
+fn = "truncate"
+args = ["'Hello'", "(-1)"]
+error = "max_len must not be negative"
+
+[[test]]
+name = "converts camelCase to snake_case"
+fn = "snake_case"
+args = ["'myVarName'"]
+expect = "'my_var_name'"
+
+[[test]]
+name = "converts snake_case to camelCase"
+fn = "camel_case"
+args = ["'my_var_name'"]
+expect = "'myVarName'"
+
+[[test]]
+name = "converts camelCase to kebab-case"
+fn = "kebab_case"
+args = ["'myVarName'"]
+expect = "'my-var-name'"
+
+[[test]]
+name = "converts snake_case to PascalCase"
+fn = "pascal_case"
+args = ["'my_var_name'"]
+expect = "'MyVarName'"
+
+[[test]]
+name = "converts snake_case to Title Case"
+fn = "title_case"
+args = ["'my_var_name'"]
+expect = "'My Var Name'"
+
+[[test]]
+name = "measures the edit distance between two words"
+fn = "levenshtein"
+args = ["'kitten'", "'sitting'"]
+expect = "3"
+
+[[test]]
+name = "reports zero distance for identical strings"
+fn = "levenshtein"
+args = ["'same'", "'same'"]
+expect = "0"
+
+[[test]]
+name = "counts whitespace-separated words"
+fn = "word_count"
+args = ["'the quick brown fox'"]
+expect = "4"
+
+[[test]]
+name = "counts no words in a blank string"
+fn = "word_count"
+args = ["'   '"]
+expect = "0"
+
+[[test]]
+name = "strips tags and keeps the text content"
+fn = "strip_html"
+args = ["'<p>Hello <b>world</b></p>'"]
+expect = "'Hello world'"
+
+[[test]]
+name = "uppercases the first character only"
+fn = "capitalize"
+args = ["'hello world'"]
+expect = "'Hello world'"
+
+[[test]]
+name = "returns an empty string when there is nothing to capitalize"
+fn = "capitalize"
+args = ["''"]
+expect = "''"
+
+[[test]]
+name = "reverses a string by character"
+fn = "reverse"
+args = ["'hello'"]
+expect = "'olleh'"
+
+[[test]]
+name = "reverses multi-byte characters intact"
+fn = "reverse"
+args = ["'héllo'"]
+expect = "'olléh'"

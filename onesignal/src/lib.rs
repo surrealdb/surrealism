@@ -15,7 +15,12 @@ fn post_json_with_headers(url: &str, body: Value, headers: Value) -> Result<Valu
 
 /// Sends a push notification to a segment via the OneSignal API.
 #[surrealism]
-fn send(api_key: String, app_id: String, message: String, segment: String) -> Result<Value, String> {
+fn send(
+	api_key: String,
+	app_id: String,
+	message: String,
+	segment: String,
+) -> Result<Value, String> {
 	post_json_with_headers(
 		"https://api.onesignal.com/notifications",
 		json!({

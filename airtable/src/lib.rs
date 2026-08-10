@@ -45,7 +45,12 @@ fn get_json_with_headers(url: &str, headers: Value) -> Result<Value> {
 
 /// Creates a record in a table.
 #[surrealism]
-fn create_record(api_key: String, base_id: String, table: String, fields: Value) -> Result<Value, String> {
+fn create_record(
+	api_key: String,
+	base_id: String,
+	table: String,
+	fields: Value,
+) -> Result<Value, String> {
 	post_json_with_headers(
 		&format!("https://api.airtable.com/v0/{base_id}/{}", encode_table(&table)),
 		json!({ "fields": fields }),
@@ -66,12 +71,14 @@ fn list_records(api_key: String, base_id: String, table: String) -> Result<Value
 
 /// Fetches a single record from a table.
 #[surrealism]
-fn get_record(api_key: String, base_id: String, table: String, record_id: String) -> Result<Value, String> {
+fn get_record(
+	api_key: String,
+	base_id: String,
+	table: String,
+	record_id: String,
+) -> Result<Value, String> {
 	get_json_with_headers(
-		&format!(
-			"https://api.airtable.com/v0/{base_id}/{}/{record_id}",
-			encode_table(&table)
-		),
+		&format!("https://api.airtable.com/v0/{base_id}/{}/{record_id}", encode_table(&table)),
 		auth_headers(&api_key),
 	)
 	.map_err(|e| e.to_string())

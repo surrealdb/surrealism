@@ -1,0 +1,29 @@
+[[test]]
+name = "returns the ISO 639-3 code of an English text"
+fn = "code"
+args = ["'This is a fairly long English sentence, written so the detector has plenty of signal to work with.'"]
+expect = "'eng'"
+
+[[test]]
+name = "returns the ISO 639-3 code of a French text"
+fn = "code"
+args = ["'Ceci est une phrase en francais, ecrite pour que le detecteur dispose de suffisamment de signal.'"]
+expect = "'fra'"
+
+[[test]]
+name = "returns none for text with no detectable language"
+fn = "code"
+args = ["'12345 67890'"]
+expect = "NONE"
+
+[[test]]
+name = "reports the code, confidence, and reliability of a detection"
+fn = "detect"
+args = ["'This is a fairly long English sentence, written so the detector has plenty of signal to work with.'"]
+contains = "lang: 'eng'"
+
+[[test]]
+name = "rejects an empty text"
+fn = "detect"
+args = ["''"]
+error = "could not detect language"

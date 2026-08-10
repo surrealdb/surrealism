@@ -1,0 +1,44 @@
+[[test]]
+name = "signs a claims object into a three-part token"
+fn = "encode"
+args = ["{ sub: 'user-1', role: 'admin' }", "'my-secret'"]
+expect = "'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYWRtaW4iLCJzdWIiOiJ1c2VyLTEifQ.0O01XyCaeha2IaaGEnrrunUcm_DjraoITvTslgKEeVc'"
+
+[[test]]
+name = "signs an empty claims object"
+fn = "encode"
+args = ["{}", "'s'"]
+expect = "'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.e30.-B4-YCTyLUjMagawx_jogHiJcDIXX789S_kLT1qJKdU'"
+
+[[test]]
+name = "returns the claims of a correctly signed token"
+fn = "decode"
+args = [
+	"'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYWRtaW4iLCJzdWIiOiJ1c2VyLTEifQ.0O01XyCaeha2IaaGEnrrunUcm_DjraoITvTslgKEeVc'",
+	"'my-secret'",
+]
+expect = "{ role: 'admin', sub: 'user-1' }"
+
+[[test]]
+name = "rejects a token signed with a different secret"
+fn = "decode"
+args = [
+	"'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYWRtaW4iLCJzdWIiOiJ1c2VyLTEifQ.0O01XyCaeha2IaaGEnrrunUcm_DjraoITvTslgKEeVc'",
+	"'wrong-secret'",
+]
+error = "InvalidSignature"
+
+[[test]]
+name = "rejects a malformed token"
+fn = "decode"
+args = ["'not-a-token'", "'my-secret'"]
+error = "InvalidToken"
+
+[[test]]
+name = "rejects a token whose exp claim has passed"
+fn = "decode"
+args = [
+	"'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjEwMDAwMDAwMDAsInN1YiI6ImEifQ.hxdP3a2LHH4PvUZ4WVhvd5_mNwZ8pWdrcnDx1ZRaRSk'",
+	"'my-secret'",
+]
+error = "ExpiredSignature"

@@ -12,18 +12,21 @@ fn post_json_with_headers(
 	body: serde_json::Value,
 	headers: serde_json::Value,
 ) -> Result<String> {
-	let value: serde_json::Value = surrealism::run(
-		"http::post".to_string(),
-		None,
-		(url.to_string(), body, headers),
-	)
-	.context("Call to host 'http::post' failed")?;
+	let value: serde_json::Value =
+		surrealism::run("http::post".to_string(), None, (url.to_string(), body, headers))
+			.context("Call to host 'http::post' failed")?;
 	Ok(value.to_string())
 }
 
 /// Sends a plain-text email via the SendGrid API using the given API key.
 #[surrealism]
-fn send(api_key: String, from: String, to: String, subject: String, body: String) -> Result<String> {
+fn send(
+	api_key: String,
+	from: String,
+	to: String,
+	subject: String,
+	body: String,
+) -> Result<String> {
 	post_json_with_headers(
 		"https://api.sendgrid.com/v3/mail/send",
 		json!({

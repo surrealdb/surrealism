@@ -1,0 +1,20 @@
+[[test]]
+name = "sends a message to a chat and returns the delivered message"
+fn = "send"
+args = ["'123456789:AAH-testtokenvalue'", "'-1001234567890'", "'Deploy complete'"]
+stdin = "{ ok: true, result: { message_id: 42, from: { id: 123456789, is_bot: true, first_name: 'Ops Bot', username: 'ops_bot' }, chat: { id: -1001234567890, title: 'Ops', type: 'supergroup' }, date: 1735689600, text: 'Deploy complete' } }"
+contains = "message_id"
+
+[[test]]
+name = "returns the text Telegram echoed back"
+fn = "send"
+args = ["'123456789:AAH-testtokenvalue'", "'@surrealdb_ops'", "'Deploy complete'"]
+stdin = "{ ok: true, result: { message_id: 43, chat: { id: -1001234567890, title: 'Ops', type: 'supergroup' }, date: 1735689600, text: 'Deploy complete' } }"
+contains = "Deploy complete"
+
+[[test]]
+name = "returns a Bot API rejection unchanged"
+fn = "send"
+args = ["'123456789:AAH-testtokenvalue'", "'-1000000000000'", "'Deploy complete'"]
+stdin = "{ ok: false, error_code: 400, description: 'Bad Request: chat not found' }"
+contains = "chat not found"

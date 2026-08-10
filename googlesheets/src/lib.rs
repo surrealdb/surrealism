@@ -52,7 +52,11 @@ fn append_row(
 
 /// Fetches the values in a range of a sheet.
 #[surrealism]
-fn get_values(access_token: String, spreadsheet_id: String, range: String) -> Result<Value, String> {
+fn get_values(
+	access_token: String,
+	spreadsheet_id: String,
+	range: String,
+) -> Result<Value, String> {
 	get_json_with_headers(
 		&format!(
 			"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{}",
