@@ -73,10 +73,16 @@ jobs:
         working-directory: ${{ matrix.module }}
         run: cargo clippy --locked --target wasm32-wasip2 --all-targets -- -D warnings
 
+      # The release tarball is fetched directly rather than through
+      # install.surrealdb.com, so the installed version is exactly the pinned
+      # one and nothing depends on the installer script.
       - name: Install SurrealDB ${{ env.SURREAL_VERSION }}
         run: |
-          curl -sSf https://install.surrealdb.com \
-            | sh -s -- --version "$SURREAL_VERSION" "$HOME/.surrealdb"
+          mkdir -p "$HOME/.surrealdb"
+          curl -sSfL \
+            "https://download.surrealdb.com/${SURREAL_VERSION}/surreal-${SURREAL_VERSION}.linux-amd64.tgz" \
+            | tar -xz -C "$HOME/.surrealdb"
+          chmod +x "$HOME/.surrealdb/surreal"
           echo "$HOME/.surrealdb" >> "$GITHUB_PATH"
           "$HOME/.surrealdb/surreal" version
 
