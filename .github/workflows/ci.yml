@@ -22,7 +22,7 @@ jobs:
     outputs:
       modules: ${{ steps.list.outputs.modules }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - id: list
         run: |
           modules=$(for d in */; do
@@ -35,7 +35,7 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Install toolchain
         run: rustup show
       - name: Check formatting
@@ -56,13 +56,13 @@ jobs:
       matrix:
         module: ${{ fromJSON(needs.discover.outputs.modules) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       # rust-toolchain.toml pins the version, components and target.
       - name: Install toolchain
         run: rustup show
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           workspaces: ${{ matrix.module }}
           key: ${{ matrix.module }}
