@@ -9,9 +9,11 @@ own license files, buildable and versionable independently of the others.
 |---|---|
 | [`aes`](aes/) | AES-256-GCM authenticated encryption and decryption |
 | [`airtable`](airtable/) | Airtable record creation, listing, and retrieval |
+| [`anthropic`](anthropic/) | Anthropic Claude message generation |
 | [`barcode`](barcode/) | Code128 and EAN-13 barcode generation (PNG) |
 | [`base58`](base58/) | Base58 and Base58Check encoding/decoding |
 | [`bluesky`](bluesky/) | Bluesky (AT Protocol) session login and posting |
+| [`chunk`](chunk/) | Text chunking for RAG (fixed, sentence, paragraph, recursive, markdown) |
 | [`color`](color/) | Color conversion, manipulation, and WCAG accessibility checks |
 | [`compress`](compress/) | Gzip compression |
 | [`cron`](cron/) | Cron expression parsing and next-occurrence computation |
@@ -21,6 +23,7 @@ own license files, buildable and versionable independently of the others.
 | [`ed25519`](ed25519/) | Ed25519 key generation, signing, and verification |
 | [`emoji`](emoji/) | Emoji shortcode ↔ unicode conversion |
 | [`fake`](fake/) | Realistic fake data generation (names, addresses, lorem ipsum, etc.) |
+| [`gemini`](gemini/) | Google Gemini embeddings and text generation |
 | [`github`](github/) | GitHub issue and comment creation/retrieval |
 | [`googlesheets`](googlesheets/) | Google Sheets row append and range read |
 | [`hash`](hash/) | Hashing, HMAC, and base64/hex encoding |
@@ -39,6 +42,7 @@ own license files, buildable and versionable independently of the others.
 | [`notion`](notion/) | Notion page creation, retrieval, and database querying |
 | [`ntfy`](ntfy/) | ntfy.sh push notifications |
 | [`onesignal`](onesignal/) | OneSignal push notifications |
+| [`openai`](openai/) | OpenAI embeddings and chat completions |
 | [`pagerduty`](pagerduty/) | PagerDuty Events API incident triggering/resolving |
 | [`password`](password/) | Password hashing and verification (Argon2) |
 | [`phonenumber`](phonenumber/) | Phone number parsing, validation, and E.164 formatting |
@@ -55,9 +59,28 @@ own license files, buildable and versionable independently of the others.
 | [`totp`](totp/) | TOTP (RFC 6238) two-factor authentication codes |
 | [`twilio`](twilio/) | Twilio SMS messages |
 | [`validate`](validate/) | Format validation: email, URL, IBAN, credit card, phone, etc. |
+| [`voyage`](voyage/) | Voyage AI embeddings |
 | [`xml`](xml/) | XML to JSON conversion |
 | [`yaml`](yaml/) | YAML to/from JSON conversion |
 | [`zip`](zip/) | ZIP archive creation and extraction |
+
+## Building a RAG pipeline
+
+`chunk` splits documents, the embedding modules turn chunks into vectors, and
+SurrealDB's built-in [`vector::`](https://surrealdb.com/docs/surrealql/functions/database/vector)
+functions do the similarity search:
+
+```surql
+FOR $piece IN mod::chunk::recursive($doc, 500, 1) {
+    CREATE chunk SET
+        text = $piece,
+        embedding = mod::openai::embed($key, "text-embedding-3-small", $piece);
+};
+
+LET $query = mod::openai::embed($key, "text-embedding-3-small", "how do I ...?");
+SELECT text, vector::similarity::cosine(embedding, $query) AS score
+    FROM chunk ORDER BY score DESC LIMIT 5;
+```
 
 ## Building
 
@@ -93,9 +116,10 @@ Guest code cannot resolve hostnames, so any function that opens a socket
 directly from the guest (`kafka::produce`) needs a literal IP address, not a
 hostname. `discord`, `slack`, `teams`, `telegram`, `sendgrid`, `postmark`,
 `github`, `pagerduty`, `twilio`, `ntfy`, `linear`, `notion`, `airtable`,
-`mastodon`, `bluesky`, `onesignal`, `hibp`, and `googlesheets` instead
-delegate to the host's `http::get`/`http::post`, which can resolve hostnames
-— see each module's README for its capability setup.
+`mastodon`, `bluesky`, `onesignal`, `hibp`, `googlesheets`, `openai`,
+`voyage`, `gemini`, and `anthropic` instead delegate to the host's
+`http::get`/`http::post`, which can resolve hostnames — see each module's
+README for its capability setup.
 
 `mastodon` talks to a federated network with no single fixed hostname, so
 its `surrealism.toml` ships with `allow_net = []`; add your own instance's
