@@ -16,7 +16,7 @@ crate-type = ["cdylib"]
 [dependencies]
 surrealism = "0.5"
 surrealdb-types = "3.2"
-zip = { version = "2", default-features = false, features = ["deflate"] }
+zip = { version = "9", default-features = false, features = ["deflate"] }
 
 [lints.clippy]
 allow_attributes = "allow"
